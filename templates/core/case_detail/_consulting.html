@@ -1,0 +1,27 @@
+<!-- core/case_detail/_consulting.html -->
+<div class="space-y-4">
+    <!-- 상담일지 입력 폼 -->
+    <form id="consultingLogForm" class="space-y-2">
+        <textarea 
+            id="logContent" 
+            name="content" 
+            placeholder="상담 내용을 입력하세요" 
+            class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 min-h-[100px]"
+        ></textarea>
+        <div class="text-right">
+            <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600">
+                저장
+            </button>
+        </div>
+    </form>
+
+    <!-- 상담일지 목록 -->
+    <div id="logList" class="space-y-4 max-h-[400px] overflow-y-auto">
+        <!-- 로딩 인디케이터 -->
+        <div class="log-loader hidden">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
+        </div>
+        
+        <!-- 상담일지 항목들이 여기에 동적으로 추가됨 -->
+    </div>
+</div>

@@ -1,0 +1,349 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}대출 목록 - MODI 대출관리{% endblock %}
+
+{% block extra_head %}
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="container max-w-7xl mx-auto px-4 py-6">
+    <!-- 필터 섹션 -->
+    <div class="bg-white rounded-lg shadow-sm p-4 mb-6">
+        <form id="filterForm" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700">고객명</label>
+                <input type="text" name="borrower_name"
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">상태</label>
+                <select name="status"
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    <option value="">전체</option>
+                    {% for value, label in status_choices.items %}
+                    <option value="{{ value }}">{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">정렬</label>
+                <select name="ordering"
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    <option value="-created_at">최신순</option>
+                    <option value="created_at">오래된순</option>
+                    <option value="-loan_amount">대출금액 높은순</option>
+                    <option value="loan_amount">대출금액 낮은순</option>
+                </select>
+            </div>
+            <div class="flex items-end">
+                <button type="button" id="searchButton"
+                    class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
+                    <span class="material-icons text-sm mr-2">search</span>
+                    검색
+                </button>
+                <button type="button" id="resetButton"
+                    class="ml-2 inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                    초기화
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- 목록 헤더 -->
+    <div class="flex justify-between items-center mb-4">
+        <h1 class="text-2xl font-semibold">대출 목록</h1>
+        <a href="/web/cases/add/"
+            class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
+            <span class="material-icons text-sm mr-2">add</span>
+            신규 등록
+        </a>
+    </div>
+
+    <!-- 목록 테이블 -->
+    <div class="bg-white shadow rounded-lg overflow-hidden">
+        <div class="min-w-full divide-y divide-gray-200">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th scope="col"
+                            class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <input type="checkbox" id="selectAll"
+                                class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                        </th>
+                        <th scope="col"
+                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">고객명
+                        </th>
+                        <th scope="col"
+                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">연락처
+                        </th>
+                        <th scope="col"
+                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">상태
+                        </th>
+                        <th scope="col"
+                            class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">대출금액
+                        </th>
+                        <th scope="col"
+                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">담당자
+                        </th>
+                        <th scope="col"
+                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">등록일
+                        </th>
+                        <th scope="col"
+                            class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">작업
+                        </th>
+                    </tr>
+                </thead>
+                <tbody id="caseList" class="bg-white divide-y divide-gray-200">
+                    <!-- JS로 데이터 로딩 -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 페이지네이션 -->
+    <div id="pagination" class="flex justify-center items-center space-x-2 mt-6">
+        <!-- JS로 페이지네이션 로딩 -->
+    </div>
+</div>
+
+<script>
+    class CaseListManager {
+        constructor() {
+            this.currentPage = 1;
+            this.pageSize = 10;
+            this.totalPages = 0;
+            this.initializeEventListeners();
+            this.loadCases();
+        }
+
+        initializeEventListeners() {
+            document.getElementById('searchButton').addEventListener('click', () => this.loadCases());
+            document.getElementById('resetButton').addEventListener('click', () => this.resetFilters());
+            document.getElementById('filterForm').addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.loadCases();
+            });
+            document.getElementById('selectAll').addEventListener('click', (e) => {
+                const checkboxes = document.querySelectorAll('.case-checkbox');
+                checkboxes.forEach(checkbox => {
+                    checkbox.checked = e.target.checked;
+                });
+            });
+        }
+
+        async deleteCase(caseId) {
+            if (!confirm('정말 삭제하시겠습니까?')) return;
+
+            try {
+                const response = await window.authUtils.fetchWithAuth(`/api/cases/${caseId}/delete/`, {
+                    method: 'DELETE'
+                });
+
+                // 204 No Content는 성공을 의미
+                if (response === null || response === undefined) {
+                    window.authUtils.showToast('성공', '케이스가 삭제되었습니다.');
+                    await this.loadCases();  // await 추가하여 목록 새로고침 완료 보장
+                } else {
+                    throw new Error('삭제 실패');
+                }
+            } catch (error) {
+                console.error('Delete error:', error);
+                window.authUtils.showToast('에러', '삭제 중 오류가 발생했습니다.', 'error');
+            }
+        }
+
+        // 선택된 케이스 일괄 삭제
+        async deleteSelected() {
+            const selectedIds = Array.from(document.querySelectorAll('.case-checkbox:checked'))
+                .map(checkbox => checkbox.dataset.id);
+
+            if (selectedIds.length === 0) {
+                window.authUtils.showToast('알림', '선택된 항목이 없습니다.');
+                return;
+            }
+
+            if (!confirm(`선택한 ${selectedIds.length}개의 항목을 삭제하시겠습니까?`)) return;
+
+            try {
+                // API endpoint가 batch delete를 지원한다고 가정
+                await window.authUtils.fetchWithAuth(`/api/cases/batch-delete/`, {
+                    method: 'POST',
+                    body: JSON.stringify({ ids: selectedIds })
+                });
+
+                window.authUtils.showToast('성공', '선택한 항목이 삭제되었습니다.');
+                this.loadCases();
+            } catch (error) {
+                console.error('Batch delete error:', error);
+                window.authUtils.showToast('에러', '삭제 중 오류가 발생했습니다.', 'error');
+            }
+        }
+
+        async loadCases() {
+            try {
+                const queryParams = this.getQueryParams();
+                console.log('Fetching cases with params:', queryParams);
+                const response = await window.authUtils.fetchWithAuth(`/api/cases/?${queryParams}`);
+                console.log('API Response:', response);
+
+                if (Array.isArray(response)) {
+                    this.renderCases(response);
+                    this.totalPages = 1;
+                    this.renderPagination();
+                } else if (response?.results) {
+                    this.renderCases(response.results);
+                    this.totalPages = Math.ceil(response.count / this.pageSize);
+                    this.renderPagination();
+                }
+            } catch (error) {
+                console.error('Error loading cases:', error);
+                window.authUtils.showToast('에러', '데이터를 불러오는데 실패했습니다.', 'error');
+            }
+        }
+
+        getQueryParams() {
+            const formData = new FormData(document.getElementById('filterForm'));
+            const params = new URLSearchParams();
+
+            for (let [key, value] of formData.entries()) {
+                if (value) params.append(key, value);
+            }
+
+            params.append('page', this.currentPage);
+            params.append('page_size', this.pageSize);
+
+            return params.toString();
+        }
+
+        renderCases(cases) {
+            const tbody = document.getElementById('caseList');
+            tbody.innerHTML = cases.map(case_ => `
+        <tr class="hover:bg-gray-50">
+            <td class="px-4 py-4 whitespace-nowrap">
+                <input type="checkbox" 
+                    class="case-checkbox rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    data-id="${case_.id}">
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+                <div class="flex items-center">
+                    ${case_.borrower_name}
+                    ${case_.is_urgent ? '<span class="material-icons text-red-500 ml-2" style="font-size: 16px;">priority_high</span>' : ''}
+                </div>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">${case_.borrower_phone || '-'}</td>
+            <td class="px-6 py-4 whitespace-nowrap">
+                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${this.getStatusColor(case_.status)}">
+                    ${case_.status_display || case_.status}
+                </span>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-right">
+                ${case_.loan_amount ? `${case_.loan_amount.toLocaleString()}만원` : '-'}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">${case_.manager_name || '-'}</td>
+            <td class="px-6 py-4 whitespace-nowrap">${new Date(case_.created_at).toLocaleDateString()}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                <a href="/web/cases/${case_.id}/" class="text-blue-600 hover:text-blue-900">상세보기</a>
+                <button 
+                    class="ml-2 text-red-600 hover:text-red-900 delete-btn"
+                    data-id="${case_.id}"
+                    onclick="caseList.deleteCase(${case_.id})"
+                >
+                    삭제
+                </button>
+            </td>
+        </tr>
+    `).join('');
+        }
+
+        getStatusColor(status) {
+            const statusColors = {
+                '단순조회중': 'bg-gray-100 text-gray-800',
+                '신용조회중': 'bg-yellow-100 text-yellow-800',
+                '서류수취중': 'bg-blue-100 text-blue-800',
+                '심사중': 'bg-purple-100 text-purple-800',
+                '승인': 'bg-green-100 text-green-800',
+                '자서예정': 'bg-indigo-100 text-indigo-800',
+                '기표예정': 'bg-pink-100 text-pink-800',
+                '용도증빙': 'bg-orange-100 text-orange-800',
+                '완료': 'bg-green-100 text-green-800',
+                '취소': 'bg-red-100 text-red-800',
+                '거절': 'bg-red-100 text-red-800',
+                '보류': 'bg-gray-100 text-gray-800'
+            };
+            return statusColors[status] || 'bg-gray-100 text-gray-800';
+        }
+
+        renderPagination() {
+            const pagination = document.getElementById('pagination');
+            let html = '';
+
+            // 이전 페이지 버튼
+            html += `
+            <button 
+                class="px-3 py-2 rounded-md ${this.currentPage === 1 ? 'text-gray-400 cursor-not-allowed' : 'text-gray-700 hover:bg-gray-50'}"
+                ${this.currentPage === 1 ? 'disabled' : ''}
+                onclick="caseList.changePage(${this.currentPage - 1})"
+            >
+                이전
+            </button>
+        `;
+
+            // 페이지 번호
+            for (let i = 1; i <= this.totalPages; i++) {
+                if (
+                    i === 1 ||
+                    i === this.totalPages ||
+                    (i >= this.currentPage - 2 && i <= this.currentPage + 2)
+                ) {
+                    html += `
+                    <button 
+                        class="px-3 py-2 rounded-md ${i === this.currentPage ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'}"
+                        onclick="caseList.changePage(${i})"
+                    >
+                        ${i}
+                    </button>
+                `;
+                } else if (
+                    i === this.currentPage - 3 ||
+                    i === this.currentPage + 3
+                ) {
+                    html += '<span class="px-2">...</span>';
+                }
+            }
+
+            // 다음 페이지 버튼
+            html += `
+            <button 
+                class="px-3 py-2 rounded-md ${this.currentPage === this.totalPages ? 'text-gray-400 cursor-not-allowed' : 'text-gray-700 hover:bg-gray-50'}"
+                ${this.currentPage === this.totalPages ? 'disabled' : ''}
+                onclick="caseList.changePage(${this.currentPage + 1})"
+            >
+                다음
+            </button>
+        `;
+
+            pagination.innerHTML = html;
+        }
+
+        changePage(page) {
+            if (page < 1 || page > this.totalPages) return;
+            this.currentPage = page;
+            this.loadCases();
+        }
+
+        resetFilters() {
+            document.getElementById('filterForm').reset();
+            this.currentPage = 1;
+            this.loadCases();
+        }
+    }
+
+    // 전역 변수로 인스턴스 생성
+    let caseList;
+    document.addEventListener('DOMContentLoaded', () => {
+        caseList = new CaseListManager();
+    });
+</script>
+{% endblock %}

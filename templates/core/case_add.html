@@ -1,0 +1,224 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}신규 대출 등록 - MODI 대출관리{% endblock %}
+
+{% block content %}
+<div class="container max-w-7xl mx-auto px-4 py-6">
+    <!-- 헤더 -->
+    <div class="bg-white rounded-lg shadow-sm p-4 mb-6">
+        <div class="flex justify-between items-center">
+            <h1 class="text-2xl font-bold">신규 대출 등록</h1>
+        </div>
+    </div>
+
+    <!-- 메인 폼 -->
+    <form id="caseForm" class="space-y-6">
+        {% csrf_token %}
+
+        <!-- 기본 정보 섹션 -->
+        <div class="bg-white rounded-lg shadow-sm p-6">
+            <h2 class="text-lg font-semibold mb-4">기본 정보</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- 차주 정보 -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">고객명 *</label>
+                    <input type="text" name="borrower_name" required
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">연락처 *</label>
+                    <input type="tel" name="borrower_phone"
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">생년월일</label>
+                    <input type="text" name="borrower_birth" placeholder="예: 901231"
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">신용점수</label>
+                    <input type="number" name="borrower_credit_score"
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                </div>
+            </div>
+        </div>
+
+        <!-- 대출 정보 섹션 -->
+        <div class="bg-white rounded-lg shadow-sm p-6">
+            <h2 class="text-lg font-semibold mb-4">대출 정보</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">대출금액 (만원)</label>
+                    <input type="number" name="loan_amount"
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">레퍼</label>
+                    <input type="text" name="referrer"
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">상태</label>
+                    <select name="status"
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        {% for value, label in status_choices.items %}
+                        <option value="{{ value }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">사업자구분</label>
+                    <select name="business_type"
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        <option value="">선택해주세요</option>
+                        {% for value, label in business_type_choices.items %}
+                        <option value="{{ value }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- 담보물건 정보 섹션 -->
+        <div class="bg-white rounded-lg shadow-sm p-6">
+            <h2 class="text-lg font-semibold mb-4">담보물건 정보</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700">담보물건지</label>
+                    <input type="text" name="address_main"
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700">상세주소</label>
+                    <input type="text" name="address_detail"
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">면적 (㎡)</label>
+                    <input type="number" name="area" step="0.01"
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">시세구분</label>
+                    <select name="price_type"
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        <option value="">선택해주세요</option>
+                        {% for value, label in price_type_choices.items %}
+                        <option value="{{ value }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <!-- 체크박스 그룹 -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+                <div>
+                    <label class="inline-flex items-center">
+                        <input type="checkbox" name="is_lower_than_2nd"
+                            class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        <span class="ml-2 text-sm text-gray-700">2층이하</span>
+                    </label>
+                </div>
+                <div>
+                    <label class="inline-flex items-center">
+                        <input type="checkbox" name="is_commercial_residential"
+                            class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        <span class="ml-2 text-sm text-gray-700">주상복합</span>
+                    </label>
+                </div>
+                <div>
+                    <label class="inline-flex items-center">
+                        <input type="checkbox" name="has_registration_issue"
+                            class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        <span class="ml-2 text-sm text-gray-700">등기이상</span>
+                    </label>
+                </div>
+                <div>
+                    <label class="inline-flex items-center">
+                        <input type="checkbox" name="is_urgent"
+                            class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        <span class="ml-2 text-sm text-gray-700">긴급처리</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- 버튼 그룹 -->
+        <div class="flex justify-end space-x-3">
+            <button type="button" onclick="window.location.href='/web/cases/'"
+                class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                취소
+            </button>
+            <button type="submit"
+                class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
+                저장
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+    class CaseAddManager {
+        constructor() {
+            this.form = document.getElementById('caseForm');
+            this.initializeEventListeners();
+        }
+
+        initializeEventListeners() {
+            this.form.addEventListener('submit', (e) => this.handleSubmit(e));
+        }
+
+        async handleSubmit(e) {
+            e.preventDefault();
+
+            try {
+                const formData = new FormData(this.form);
+                const data = Object.fromEntries(formData.entries());
+
+                // 빈 문자열 필드 제거
+                Object.keys(data).forEach(key => {
+                    if (data[key] === '') {
+                        delete data[key];
+                    }
+                });
+
+                // 체크박스 처리
+                this.form.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                    data[checkbox.name] = checkbox.checked;
+                });
+
+                // 숫자 필드가 있는 경우만 변환
+                ['loan_amount', 'borrower_credit_score', 'area'].forEach(field => {
+                    if (data[field]) {
+                        data[field] = Number(data[field]);
+                    }
+                });
+
+                console.log('Submitting data:', data);
+
+                const response = await window.authUtils.fetchWithAuth('/api/cases/create/', {
+                    method: 'POST',
+                    body: JSON.stringify(data)
+                });
+
+                if (response && response.id) {
+                    window.authUtils.showToast('성공', '새로운 대출 건이 등록되었습니다.');
+                    setTimeout(() => {
+                        window.location.href = `/web/cases/${response.id}/`;
+                    }, 1500);
+                } else {
+                    throw new Error('저장된 데이터를 받지 못했습니다.');
+                }
+            } catch (error) {
+                console.error('Save error:', error);
+                window.authUtils.showToast('에러', '데이터 저장 중 오류가 발생했습니다.', 'error');
+            }
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        new CaseAddManager();
+    });
+</script>
+{% endblock %}

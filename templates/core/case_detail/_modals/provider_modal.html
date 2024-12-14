@@ -1,0 +1,43 @@
+<!-- core/case_detail/_modals/provider_modal.html -->
+<div id="providerModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-lg shadow-xl max-w-lg w-full">
+            <!-- 모달 헤더 -->
+            <div class="px-6 py-4 border-b">
+                <h3 class="text-lg font-medium">담보제공자 정보</h3>
+            </div>
+
+            <!-- 모달 본문 -->
+            <form id="providerForm" class="p-6 space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="form-control">
+                        <label for="providerName" class="label">이름 <span class="text-red-500">*</span></label>
+                        <input type="text" id="providerName" name="name" class="input" required>
+                    </div>
+                    <div class="form-control">
+                        <label for="providerBirth" class="label">생년월일</label>
+                        <input type="text" id="providerBirth" name="birth_date" class="input" maxlength="6" placeholder="예) 901231">
+                    </div>
+                    <div class="form-control">
+                        <label for="providerPhone" class="label">연락처</label>
+                        <input type="text" id="providerPhone" name="phone" class="input" placeholder="010-0000-0000">
+                    </div>
+                    <div class="form-control">
+                        <label for="providerCreditScore" class="label">신용점수</label>
+                        <input type="number" id="providerCreditScore" name="credit_score" class="input" min="1" max="1000">
+                    </div>
+                </div>
+
+                <!-- 모달 푸터 -->
+                <div class="flex justify-end gap-2 mt-6">
+                    <button type="button" onclick="providerModal.classList.add('hidden')" class="btn-secondary">
+                        취소
+                    </button>
+                    <button type="submit" class="btn-primary">
+                        저장
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

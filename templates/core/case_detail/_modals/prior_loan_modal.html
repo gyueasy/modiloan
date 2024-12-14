@@ -1,0 +1,43 @@
+<!-- core/case_detail/_modals/prior_loan_modal.html -->
+<div id="priorLoanModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-lg shadow-xl max-w-lg w-full">
+            <!-- 모달 헤더 -->
+            <div class="px-6 py-4 border-b">
+                <h3 class="text-lg font-medium">선순위대출 정보</h3>
+            </div>
+
+            <!-- 모달 본문 -->
+            <form id="priorLoanForm" class="p-6 space-y-4">
+                <div class="grid grid-cols-1 gap-4">
+                    <div class="form-control">
+                        <label for="loanType" class="label">구분 <span class="text-red-500">*</span></label>
+                        <select id="loanType" name="loan_type" class="select" required>
+                            <option value="">선택</option>
+                            <option value="선설정">선설정</option>
+                            <option value="대환">대환</option>
+                        </select>
+                    </div>
+                    <div class="form-control">
+                        <label for="financialCompany" class="label">금융사 <span class="text-red-500">*</span></label>
+                        <input type="text" id="financialCompany" name="financial_company" class="input" required>
+                    </div>
+                    <div class="form-control">
+                        <label for="loanAmount" class="label">금액 (만원) <span class="text-red-500">*</span></label>
+                        <input type="text" id="loanAmount" name="amount" class="input" required>
+                    </div>
+                </div>
+
+                <!-- 모달 푸터 -->
+                <div class="flex justify-end gap-2 mt-6">
+                    <button type="button" onclick="priorLoanModal.classList.add('hidden')" class="btn-secondary">
+                        취소
+                    </button>
+                    <button type="submit" class="btn-primary">
+                        저장
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

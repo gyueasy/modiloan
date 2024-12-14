@@ -1,0 +1,195 @@
+<!-- core/case_detail/_form_basic.html -->
+
+<!-- 차주 정보 -->
+<div class="col-span-2 border-b border-gray-200 pb-6 mb-6">
+    <h3 class="text-md font-medium text-gray-900 mb-4">차주 정보</h3>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+                차주명 <span class="text-red-500">*</span>
+            </label>
+            <input type="text" id="borrowerName" name="borrower_name" required
+                class="w-full px-3 py-2 text-sm border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-200 bg-gray-50 focus:bg-white transition-all">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">연락처</label>
+            <input type="text" id="borrowerPhone" name="borrower_phone" 
+                class="w-full px-3 py-2 text-sm border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-200 bg-gray-50 focus:bg-white transition-all"
+                placeholder="010-0000-0000">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">생년월일</label>
+            <input type="text" id="borrowerBirth" name="borrower_birth" 
+                class="w-full px-3 py-2 text-sm border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-200 bg-gray-50 focus:bg-white transition-all"
+                maxlength="6" placeholder="예) 901231">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">신용점수</label>
+            <input type="number" id="borrowerCreditScore" name="borrower_credit_score" 
+                class="w-full px-3 py-2 text-sm border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-200 bg-gray-50 focus:bg-white transition-all"
+                min="1" max="1000">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">레퍼</label>
+            <input type="text" name="referrer" id="referrer"
+                class="w-full px-3 py-2 text-sm border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-200 bg-gray-50 focus:bg-white transition-all">
+        </div>
+    </div>
+</div>
+
+<!-- 담보물건 정보 -->
+<div class="col-span-2 border-b border-gray-200 pb-6 mb-6">
+    <h3 class="text-md font-medium text-gray-900 mb-4">담보물건 정보</h3>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="md:col-span-2">
+            <label class="block text-sm font-medium text-gray-700 mb-1">주소</label>
+            <input type="text" id="addressMain" name="address_main" 
+                class="w-full px-3 py-2 text-sm border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-200 bg-gray-50 focus:bg-white transition-all"
+                placeholder="동까지 입력">
+        </div>
+        <div class="md:col-span-2">
+            <label class="block text-sm font-medium text-gray-700 mb-1">상세주소</label>
+            <input type="text" id="addressDetail" name="address_detail" 
+                class="w-full px-3 py-2 text-sm border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-200 bg-gray-50 focus:bg-white transition-all"
+                placeholder="호수 입력">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">면적 (㎡)</label>
+            <input type="number" id="area" name="area" 
+                class="w-full px-3 py-2 text-sm border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-200 bg-gray-50 focus:bg-white transition-all"
+                step="0.01">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">시세구분</label>
+            <select id="priceType" name="price_type" 
+                class="w-full px-3 py-2 text-sm border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-200 bg-gray-50 focus:bg-white transition-all">
+                <option value="">선택</option>
+                {% for value, label in price_type_choices.items %}
+                <option value="{{ value }}">{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">시세금액 (만원)</label>
+            <input type="number" id="priceAmount" name="price_amount" 
+                class="w-full px-3 py-2 text-sm border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-200 bg-gray-50 focus:bg-white transition-all">
+        </div>
+    </div>
+
+    <!-- 체크박스 그룹 -->
+    <div class="mt-4 p-4 bg-gray-50 border-2 border-gray-200 rounded-lg">
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <label class="flex items-center space-x-2">
+                <input type="checkbox" name="is_lower_than_2nd"
+                    class="w-4 h-4 text-blue-600 border-2 border-gray-300 rounded focus:ring-blue-500">
+                <span class="text-sm text-gray-700">2층이하</span>
+            </label>
+            <label class="flex items-center space-x-2">
+                <input type="checkbox" name="is_commercial_residential"
+                    class="w-4 h-4 text-blue-600 border-2 border-gray-300 rounded focus:ring-blue-500">
+                <span class="text-sm text-gray-700">주상복합</span>
+            </label>
+            <label class="flex items-center space-x-2">
+                <input type="checkbox" name="is_above_4th_rank"
+                    class="w-4 h-4 text-blue-600 border-2 border-gray-300 rounded focus:ring-blue-500">
+                <span class="text-sm text-gray-700">4순위이상</span>
+            </label>
+            <label class="flex items-center space-x-2">
+                <input type="checkbox" name="has_registration_issue"
+                    class="w-4 h-4 text-blue-600 border-2 border-gray-300 rounded focus:ring-blue-500">
+                <span class="text-sm text-gray-700">등기이상</span>
+            </label>
+            <label class="flex items-center space-x-2">
+                <input type="checkbox" name="is_trading_price_low"
+                    class="w-4 h-4 text-blue-600 border-2 border-gray-300 rounded focus:ring-blue-500">
+                <span class="text-sm text-gray-700">실거래가열위</span>
+            </label>
+        </div>
+    </div>
+</div>
+
+<!-- 사업자 정보 -->
+<div class="col-span-2 border-b border-gray-200 pb-6 mb-6">
+    <h3 class="text-md font-medium text-gray-900 mb-4">사업자 정보</h3>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">사업자구분</label>
+            <select id="businessType" name="business_type" 
+                class="w-full px-3 py-2 text-sm border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-200 bg-gray-50 focus:bg-white transition-all">
+                <option value="">선택</option>
+                {% for value, label in business_type_choices.items %}
+                <option value="{{ value }}">{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">현재매출 (만원)</label>
+            <input type="number" id="monthlySales" name="monthly_sales" 
+                class="w-full px-3 py-2 text-sm border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-200 bg-gray-50 focus:bg-white transition-all">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">부가세 신고 여부</label>
+            <select id="vatStatus" name="vat_status" 
+                class="w-full px-3 py-2 text-sm border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-200 bg-gray-50 focus:bg-white transition-all">
+                <option value="">선택</option>
+                {% for value, label in vat_status_choices.items %}
+                <option value="{{ value }}">{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">사업자외소득</label>
+            <input type="text" id="otherIncome" name="other_income" 
+                class="w-full px-3 py-2 text-sm border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-200 bg-gray-50 focus:bg-white transition-all">
+        </div>
+    </div>
+
+    <!-- 체크박스 그룹 -->
+    <div class="mt-4 p-4 bg-gray-50 border-2 border-gray-200 rounded-lg">
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <label class="flex items-center space-x-2">
+                <input type="checkbox" name="is_fake_business"
+                    class="w-4 h-4 text-blue-600 border-2 border-gray-300 rounded focus:ring-blue-500">
+                <span class="text-sm text-gray-700">가라사업자 여부</span>
+            </label>
+            <label class="flex items-center space-x-2">
+                <input type="checkbox" name="is_soho"
+                    class="w-4 h-4 text-blue-600 border-2 border-gray-300 rounded focus:ring-blue-500">
+                <span class="text-sm text-gray-700">소호여부</span>
+            </label>
+            <label class="flex items-center space-x-2">
+                <input type="checkbox" name="need_proof_of_use"
+                    class="w-4 h-4 text-blue-600 border-2 border-gray-300 rounded focus:ring-blue-500">
+                <span class="text-sm text-gray-700">용도증빙필요</span>
+            </label>
+            <label class="flex items-center space-x-2">
+                <input type="checkbox" name="is_separate_household"
+                    class="w-4 h-4 text-blue-600 border-2 border-gray-300 rounded focus:ring-blue-500">
+                <span class="text-sm text-gray-700">별도세대</span>
+            </label>
+        </div>
+    </div>
+</div>
+
+<!-- 실행 정보 -->
+<div class="col-span-2">
+    <h3 class="text-md font-medium text-gray-900 mb-4">실행 정보</h3>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">실행금액 (만원)</label>
+            <input type="number" id="loanAmount" name="loan_amount" 
+                class="w-full px-3 py-2 text-sm border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-200 bg-gray-50 focus:bg-white transition-all">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">실행금리 (%)</label>
+            <input type="number" id="interestRate" name="interest_rate" 
+                class="w-full px-3 py-2 text-sm border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-200 bg-gray-50 focus:bg-white transition-all"
+                step="0.01">
+        </div>
+        <div class="md:col-span-2">
+            <label class="block text-sm font-medium text-gray-700 mb-1">물건지 거주구성원</label>
+            <textarea id="residents" name="residents" rows="3"
+                class="w-full px-3 py-2 text-sm border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-200 bg-gray-50 focus:bg-white transition-all"></textarea>
+        </div>
+    </div>
+</div>

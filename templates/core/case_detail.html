@@ -1,0 +1,190 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block extra_head %}
+<script>
+    if (!window.loanCaseApp) {
+        const pathSegments = window.location.pathname.split('/');
+        const caseIdentifier = pathSegments[pathSegments.indexOf('cases') + 1];
+        
+        window.loanCaseApp = {
+            caseId: caseIdentifier,
+            saveTimer: null,
+            securityProviders: [],
+            priorLoans: [],
+            comments: [],
+            consultingLogs: [],
+            events: [],
+            initialized: false,
+            endpoints: {
+                base: `/api/cases/${caseIdentifier}/`,
+                comments: `/api/cases/${caseIdentifier}/comments/`,
+                consultingLogs: `/api/cases/${caseIdentifier}/consulting-logs/`
+            }
+        };
+    }
+</script>
+{% endblock %}
+{% block content %}
+
+<div class="container max-w-7xl mx-auto px-4 py-6">
+    <!-- 상단 헤더 영역 -->
+    <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+        <div class="flex justify-between items-center">
+            <h1 class="text-2xl font-bold text-gray-900">
+                {% if loan_case.id %}
+                    {{ loan_case.borrower_name }}님의 대출 건
+                {% else %}
+                    신규 대출 건
+                {% endif %}
+            </h1>
+            <div class="flex items-center gap-4">
+                <!-- 긴급처리 토글 -->
+                <button id="urgentToggle"
+                    class="inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded transition-colors
+                    {% if loan_case.is_urgent %}
+                        bg-red-100 text-red-700 hover:bg-red-200
+                    {% else %}
+                        bg-gray-100 text-gray-700 hover:bg-gray-200
+                    {% endif %}">
+                    <span class="material-icons text-sm">priority_high</span>
+                    긴급처리
+                </button>
+                <!-- 상태 변경 드롭다운 -->
+                <select id="statusSelect" 
+                    class="px-3 py-2 text-sm border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-200 bg-gray-50 focus:bg-white min-w-[150px]">
+                    {% for value, label in status_choices.items %}
+                    <option value="{{ value }}" {% if value == loan_case.status %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- 메인 콘텐츠 영역 -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- 왼쪽: 메인 폼 (2열) -->
+        <div class="lg:col-span-2 space-y-6">
+            <form id="caseForm" class="space-y-6">
+                {% csrf_token %}
+                <input type="hidden" name="case_id" value="{{ loan_case.id|default:'' }}">
+                <input type="hidden" id="loanCaseId" value="{{ loan_case.id|default:'' }}">
+
+                <!-- 섹션 1: 기본 정보 -->
+                <div class="bg-white rounded-lg shadow-sm p-6">
+                    <h2 class="text-lg font-semibold mb-4 text-gray-900">기본 정보</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {% include 'core/case_detail/_form_basic.html' %}
+                    </div>
+                </div>
+
+                <!-- 섹션 2: 담보제공자 정보 -->
+                <div class="bg-white rounded-lg shadow-sm p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-lg font-semibold text-gray-900">담보제공자</h2>
+                        <button type="button" id="addProviderBtn" 
+                            class="px-3 py-1.5 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors">
+                            담보제공자 추가
+                        </button>
+                    </div>
+                    <div id="providersTable" class="overflow-x-auto">
+                        <!-- 담보제공자 목록 테이블 -->
+                    </div>
+                </div>
+
+                <!-- 섹션 3: 선순위대출 정보 -->
+                <div class="bg-white rounded-lg shadow-sm p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-lg font-semibold text-gray-900">선순위대출</h2>
+                        <button type="button" id="addPriorLoanBtn" 
+                            class="px-3 py-1.5 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors">
+                            선순위대출 추가
+                        </button>
+                    </div>
+                    <div id="priorLoansTable" class="overflow-x-auto">
+                        <!-- 선순위대출 목록 테이블 -->
+                    </div>
+                </div>
+            </form>
+
+            <!-- 이벤트 섹션 -->
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-semibold text-gray-900">이벤트</h2>
+                    <button id="addEventBtn" 
+                        class="px-3 py-1.5 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors">
+                        이벤트 추가
+                    </button>
+                </div>
+                <ul id="eventList" class="space-y-4">
+                    <!-- 이벤트 항목들이 여기에 동적으로 추가됩니다 -->
+                </ul>
+            </div>
+        </div>
+
+        <!-- 오른쪽 사이드바 -->
+        <div class="lg:col-span-1 space-y-6">
+            <!-- 상담일지 -->
+            <div id="consultingLogs" class="bg-white rounded-lg shadow-sm p-6">
+                <h2 class="text-lg font-semibold mb-4 text-gray-900">상담일지</h2>
+                <form id="consultingLogForm" class="mb-4">
+                    <textarea id="logContent" 
+                        class="w-full px-3 py-2 text-sm border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-200 bg-gray-50 focus:bg-white transition-all"
+                        rows="3" 
+                        placeholder="상담 내용을 입력하세요"></textarea>
+                    <button type="submit" 
+                        class="px-3 py-1.5 mt-2 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors">
+                        저장
+                    </button>
+                </form>
+                <div id="logList" class="space-y-4">
+                    <!-- 상담일지 항목들이 여기에 동적으로 추가됨 -->
+                </div>
+            </div>
+
+            <!-- 커뮤니케이션 -->
+            <div id="comments" class="bg-white rounded-lg shadow-sm p-6">
+                <h2 class="text-lg font-semibold mb-4 text-gray-900">댓글</h2>
+                <form id="commentForm" class="mb-4">
+                    <textarea id="commentContent" 
+                        class="w-full px-3 py-2 text-sm border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-200 bg-gray-50 focus:bg-white transition-all"
+                        rows="3" 
+                        placeholder="댓글을 입력하세요"></textarea>
+                    <button type="submit" 
+                        class="px-3 py-1.5 mt-2 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors">
+                        작성
+                    </button>
+                </form>
+                <div id="commentList" class="space-y-4">
+                    <!-- 댓글 항목들이 여기에 동적으로 추가됨 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 모달 컴포넌트들 -->
+    {% include 'core/case_detail/_modals/provider_modal.html' %}
+    {% include 'core/case_detail/_modals/prior_loan_modal.html' %}
+    {% include 'core/case_detail/_modals/event_modal.html' %}
+
+    <!-- 로딩 인디케이터 -->
+    <div id="loadingIndicator" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white p-4 rounded-lg shadow-lg">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+        </div>
+    </div>
+
+    <!-- 토스트 메시지 컨테이너 -->
+    <div id="toastContainer" class="fixed bottom-4 right-4 z-50"></div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+
+<!-- 순서대로 로딩하기 위해 async/defer 제거 -->
+<script type="module" src="{% static 'js/case_detail.js' %}"></script>
+<script type="module" src="{% static 'js/security_provider.js' %}"></script>
+<script type="module" src="{% static 'js/prior_loan.js' %}"></script>
+<script type="module" src="{% static 'js/consulting_log.js' %}"></script>
+<script type="module" src="{% static 'js/comment.js' %}"></script>
+<script type="module" src="{% static 'js/event.js' %}"></script>
+{% endblock %}

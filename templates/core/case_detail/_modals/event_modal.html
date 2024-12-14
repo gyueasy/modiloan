@@ -1,0 +1,64 @@
+<!-- core/case_detail/_modals/event_modal.html -->
+<div id="eventModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-lg shadow-xl max-w-lg w-full">
+            <!-- 모달 헤더 -->
+            <div class="px-6 py-4 border-b flex justify-between items-center">
+                <h3 class="text-lg font-medium">이벤트 정보</h3>
+                <button type="button" class="close-button text-gray-400 hover:text-gray-600">
+                    &times;
+                </button>
+            </div>
+
+            <!-- 모달 본문 -->
+            <form id="eventForm" class="p-6 space-y-4">
+                <input type="hidden" id="eventId" name="id">
+                
+                <div class="space-y-4">
+                    <div class="form-control">
+                        <label for="title" class="label">제목 <span class="text-red-500">*</span></label>
+                        <input type="text" id="title" name="title" class="w-full px-3 py-2 text-sm border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-200 bg-gray-50 focus:bg-white transition-all" required>
+                    </div>
+
+                    <div class="form-control">
+                        <label for="description" class="label">설명</label>
+                        <textarea id="description" name="description" rows="3" 
+                            class="w-full px-3 py-2 text-sm border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-200 bg-gray-50 focus:bg-white transition-all"></textarea>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="form-control">
+                            <label for="authorizing_date" class="label">자서예정일</label>
+                            <input type="date" id="authorizing_date" name="authorizing_date" 
+                                class="w-full px-3 py-2 text-sm border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-200 bg-gray-50 focus:bg-white transition-all">
+                        </div>
+
+                        <div class="form-control">
+                            <label for="journalizing_date" class="label">기표예정일</label>
+                            <input type="date" id="journalizing_date" name="journalizing_date" 
+                                class="w-full px-3 py-2 text-sm border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-200 bg-gray-50 focus:bg-white transition-all">
+                        </div>
+
+                        <div class="form-control md:col-span-2">
+                            <label for="scheduled_date" class="label">요청일</label>
+                            <input type="date" id="scheduled_date" name="scheduled_date" 
+                                class="w-full px-3 py-2 text-sm border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-200 bg-gray-50 focus:bg-white transition-all">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 모달 푸터 -->
+                <div class="flex justify-end gap-2 mt-6">
+                    <button type="button" onclick="closeEventModal()" 
+                        class="px-3 py-1.5 text-sm border border-gray-300 rounded hover:bg-gray-50 transition-colors">
+                        취소
+                    </button>
+                    <button type="submit" 
+                        class="px-3 py-1.5 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors">
+                        저장
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

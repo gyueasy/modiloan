@@ -1,0 +1,158 @@
+<!-- templates/base.html -->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}MODI 대출관리{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <!-- 공통 인증 유틸리티 -->
+    <script>
+        // 전역 fetch 인터셉터
+        const originalFetch = window.fetch;
+        window.fetch = function(...args) {
+            console.log('Fetch interceptor: 요청 시작');
+            const token = localStorage.getItem('token');
+            if (token && args[1] !== undefined) {
+                if (!args[1].headers) {
+                    args[1].headers = {};
+                }
+                args[1].headers['Authorization'] = `Bearer ${token}`;
+                console.log('Fetch interceptor: Bearer 토큰 추가됨');
+            }
+            return originalFetch.apply(this, args);
+        }
+
+        window.authUtils = {
+            getToken() {
+                const token = localStorage.getItem('token');
+                if (token) {
+                    console.log('localStorage에서 토큰 찾음');
+                    return token;
+                }
+                return null;
+            },
+
+            async fetchWithAuth(url, options = {}) {
+                const token = this.getToken();
+                if (!token) return null;
+
+                try {
+                    this.showLoading();
+                    const response = await fetch(url, {
+                        ...options,
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json',
+                            ...options.headers
+                        }
+                    });
+
+                    if (response.status === 401) {
+                        localStorage.removeItem('token');
+                        window.location.href = '/web/login/';
+                        return null;
+                    }
+
+                    if (!response.ok) {
+                        throw new Error(`API request failed: ${response.status}`);
+                    }
+
+                    return await response.json();
+                } catch (error) {
+                    console.error('API Request Error:', error);
+                    throw error;
+                } finally {
+                    this.hideLoading();
+                }
+            },
+
+            showToast(title, message, type = 'info') {
+                const toast = document.createElement('div');
+                toast.className = `toast ${type} mb-2`;
+                toast.innerHTML = `
+                    <div class="rounded-lg p-4 flex items-center gap-2 ${
+                        type === 'error' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'
+                    }">
+                        <span class="material-icons text-sm">
+                            ${type === 'error' ? 'error' : 'check_circle'}
+                        </span>
+                        <div>
+                            <p class="font-semibold">${title}</p>
+                            <p class="text-sm">${message}</p>
+                        </div>
+                    </div>
+                `;
+                
+                const container = document.getElementById('toastContainer');
+                if (container) {
+                    container.appendChild(toast);
+                    setTimeout(() => toast.remove(), 3000);
+                }
+            },
+
+            showLoading() {
+                document.getElementById('loadingIndicator')?.classList.remove('hidden');
+            },
+
+            hideLoading() {
+                document.getElementById('loadingIndicator')?.classList.add('hidden');
+            }
+        };
+    </script>
+
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="bg-gray-50">
+    {% if request.path != '/web/login/' %}
+    <script>
+        const token = localStorage.getItem('token');
+        if (!token) {
+            console.log('토큰 없음, 로그인으로 리다이렉트');
+            window.location.href = '/web/login/';
+        } else {
+            console.log('토큰 존재, 페이지 로드 진행');
+        }
+    </script>
+
+    <nav class="bg-white shadow">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center">
+                    <a href="/web/dashboard/" class="text-xl font-bold text-gray-800">대출관리 시스템</a>
+                    <div class="hidden sm:ml-10 sm:flex sm:space-x-4">
+                        <a href="/web/dashboard/" class="text-gray-900 hover:text-blue-600 px-3 py-2 text-sm font-medium">대시보드</a>
+                        <a href="/web/cases/" class="text-gray-900 hover:text-blue-600 px-3 py-2 text-sm font-medium">고객관리</a>
+                        <a href="/web/schedule/" class="text-gray-900 hover:text-blue-600 px-3 py-2 text-sm font-medium">일정</a>
+                        <a href="/web/customers/status/" class="text-gray-900 hover:text-blue-600 px-3 py-2 text-sm font-medium">상태별고객</a>
+                        <a href="/web/cases/add/" class="text-gray-900 hover:text-blue-600 px-3 py-2 text-sm font-medium">고객추가</a>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="/web/profile/" class="text-gray-600 hover:text-blue-600 px-3 py-2 text-sm font-medium">프로필</a>
+                    <a href="#" onclick="localStorage.removeItem('token'); window.location.href='/web/login/';" class="text-gray-600 hover:text-blue-600 px-3 py-2 text-sm font-medium">로그아웃</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+    {% endif %}
+
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- 토스트 메시지 컨테이너 -->
+    <div id="toastContainer" class="fixed bottom-4 right-4 z-50"></div>
+
+    <!-- 로딩 인디케이터 -->
+    <div id="loadingIndicator" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white p-4 rounded-lg shadow">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+        </div>
+    </div>
+
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

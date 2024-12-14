@@ -1,0 +1,33 @@
+<!-- core/case_detail/_communication.html -->
+<div class="space-y-4">
+    <!-- 커뮤니케이션 헤더 -->
+    <div class="flex justify-between items-center">
+        <h3 class="text-lg font-medium">커뮤니케이션</h3>
+        <span id="unreadCount" class="hidden px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"></span>
+    </div>
+
+    <!-- 댓글 입력 폼 -->
+    <form id="commentForm" class="space-y-2">
+        <textarea 
+            id="commentContent" 
+            name="content" 
+            placeholder="메시지를 입력하세요" 
+            class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 min-h-[100px]"
+        ></textarea>
+        <div class="text-right">
+            <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600">
+                전송
+            </button>
+        </div>
+    </form>
+
+    <!-- 댓글 목록 -->
+    <div id="commentList" class="space-y-4 max-h-[400px] overflow-y-auto divide-y divide-gray-200">
+        <!-- 로딩 인디케이터 -->
+        <div class="comment-loader hidden">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
+        </div>
+        
+        <!-- 댓글 항목들이 여기에 동적으로 추가됨 -->
+    </div>
+</div>

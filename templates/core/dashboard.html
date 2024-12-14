@@ -1,0 +1,206 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/style.css' %}">
+<link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.15/index.global.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@fullcalendar/web-component@6.1.15/index.global.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@fullcalendar/daygrid@6.1.15/index.global.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="max-w-7xl mx-auto">
+        <!-- API 버튼 -->
+        <div class="flex gap-4 mb-6">
+            <button id="showApiResponse" class="btn btn-primary">
+                <span>API 응답 보기</span>
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                </svg>
+            </button>
+            
+            <button id="showEventsResponse" class="btn btn-success">
+                <span>이벤트 API 응답 보기</span>
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+            </button>
+        </div>
+
+        <!-- 통계 카드 섹션 -->
+        <div class="grid-container stats mb-8">
+            <!-- 오늘의 신규 -->
+            <div class="dashboard-card">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-lg font-semibold text-gray-700">오늘의 신규</h3>
+                    <span class="text-blue-500">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                        </svg>
+                    </span>
+                </div>
+                <p data-stat="new-cases" class="stat-value">0건</p>
+                <p data-stat="new-cases-diff" class="stat-diff"></p>
+            </div>
+
+            <!-- 진행중 -->
+            <div class="dashboard-card">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-lg font-semibold text-gray-700">진행중</h3>
+                    <span class="text-yellow-500">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
+                    </span>
+                </div>
+                <p data-stat="ongoing-cases" class="stat-value">0건</p>
+                <p data-stat="ongoing-cases-diff" class="stat-diff"></p>
+            </div>
+
+            <!-- 이번달 실적 -->
+            <div class="dashboard-card">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-lg font-semibold text-gray-700">이번달 실적</h3>
+                    <span class="text-green-500">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                        </svg>
+                    </span>
+                </div>
+                <p data-stat="monthly-stats" class="stat-value">0건</p>
+                <div class="flex justify-between items-center">
+                    <p data-stat="monthly-amount" class="text-sm text-gray-600">0만원</p>
+                    <p data-stat="monthly-amount-diff" class="stat-diff"></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 알림 섹션 -->
+        {% if unread_questions %}
+        <div class="mb-6">
+            <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm text-yellow-700">답변이 필요한 질문이 {{ unread_questions.count }}건 있습니다.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- 중단 섹션 -->
+        <div class="grid-container">
+            <!-- 긴급처리 필요 -->
+            <div class="dashboard-card">
+                <h3 class="text-lg font-semibold text-gray-700 mb-4">긴급처리 필요</h3>
+                <div class="urgent-cases-container space-y-3">
+                    {% for case in urgent_cases %}
+                    <a href="{% url 'core:case_detail' case.id %}" class="block">
+                        <div class="urgent-case">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="font-medium text-red-800">{{ case.borrower_name }}</p>
+                                    <p class="text-sm text-red-600">
+                                        {{ case.get_status_display }}
+                                        {% if case.scheduled_date %}
+                                        - {{ case.scheduled_date|date:"Y-m-d" }}
+                                        {% endif %}
+                                    </p>
+                                </div>
+                                {% if case.is_urgent %}
+                                <span class="urgent-badge">긴급</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </a>
+                    {% empty %}
+                    <p class="text-gray-500">긴급처리가 필요한 건이 없습니다.</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- 공지사항 -->
+            <div class="dashboard-card">
+                <h3 class="text-lg font-semibold text-gray-700 mb-4">공지사항</h3>
+                <div class="notices-container space-y-4">
+                    {% for notice in notices %}
+                    <div class="notice {% if notice.priority == '높음' %}high{% elif notice.priority == '중간' %}medium{% else %}low{% endif %}">
+                        <div class="flex justify-between items-center mb-2">
+                            <h4 class="font-medium">{{ notice.title }}</h4>
+                            <span class="text-sm text-gray-500">{{ notice.created_at|date:"Y-m-d" }}</span>
+                        </div>
+                        <p class="text-gray-600">{{ notice.content }}</p>
+                    </div>
+                    {% empty %}
+                    <p class="text-gray-500">등록된 공지사항이 없습니다.</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- 최근 배정된 케이스 -->
+            <div class="dashboard-card">
+                <h3 class="text-lg font-semibold text-gray-700 mb-4">최근 배정된 케이스</h3>
+                <div class="recent-cases-container space-y-3">
+                    {% for case in recent_cases %}
+                    <a href="/web/cases/{{ case.id }}/" class="block">
+                        <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                            <div>
+                                <p class="font-medium text-gray-800">{{ case.borrower_name }}</p>
+                                <p class="text-sm text-gray-600">{{ case.get_status_display }}</p>
+                            </div>
+                            <span class="text-sm text-gray-500">{{ case.created_at|date:"Y-m-d" }}</span>
+                        </div>
+                    </a>
+                    {% empty %}
+                    <p class="text-gray-500">최근 배정된 케이스가 없습니다.</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- 캘린더 -->
+            <div class="dashboard-card">
+                <h3 class="text-lg font-semibold text-gray-700 mb-4">일정</h3>
+                <div id="calendar"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 모달 -->
+    <div id="apiModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto z-50 flex items-center justify-center">
+        <div class="bg-white rounded-lg w-11/12 md:w-3/4 lg:w-2/3 max-h-[90vh] flex flex-col relative my-6">
+            <div class="flex justify-between items-center p-4 border-b sticky top-0 bg-white rounded-t-lg">
+                <h3 id="modalTitle" class="text-lg font-semibold text-gray-900"></h3>
+                <button id="closeModal" class="text-gray-400 hover:text-gray-500">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <div class="p-4 overflow-y-auto" style="max-height: 60vh;">
+                <pre id="apiContent" class="bg-gray-50 p-4 rounded text-sm overflow-x-auto"></pre>
+            </div>
+            <div class="border-t p-4 sticky bottom-0 bg-white rounded-b-lg">
+                <button id="copyResponse" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded flex items-center gap-2">
+                    <span>응답 복사</span>
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{% static 'js/dashboard.js' %}"></script>
+{% endblock %}
