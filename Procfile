@@ -1,1 +1,1 @@
-web: gunicorn ADMIN.wsgi
+web: gunicorn config.wsgi
