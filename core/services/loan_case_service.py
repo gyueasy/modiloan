@@ -64,6 +64,16 @@ class LoanCaseService(BaseService):
         loan_case.authorizing_date = data.get('authorizing_date', loan_case.authorizing_date)
         loan_case.journalizing_date = data.get('journalizing_date', loan_case.journalizing_date)
         loan_case.scheduled_date = data.get('scheduled_date', loan_case.scheduled_date)
+        # 새로 추가된 필드들
+        loan_case.referrer = data.get('referrer', loan_case.referrer)
+        loan_case.introducer = data.get('introducer', loan_case.introducer)
+        loan_case.loan_type = data.get('loan_type', loan_case.loan_type)
+        
+        # 사업자 정보 신규 필드
+        loan_case.business_number = data.get('business_number', loan_case.business_number)
+        loan_case.business_category = data.get('business_category', loan_case.business_category)
+        loan_case.business_item = data.get('business_item', loan_case.business_item)
+
 
         # 체크박스 필드 업데이트
         boolean_fields = [
@@ -76,6 +86,7 @@ class LoanCaseService(BaseService):
             'is_soho',
             'need_proof_of_use',
             'is_separate_household',
+            'is_tenant',
         ]
 
         for field in boolean_fields:

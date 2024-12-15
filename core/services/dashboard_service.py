@@ -27,19 +27,40 @@ class DashboardService:
 
     @staticmethod
     def _get_today_stats(today: date, yesterday: date) -> Dict:
+        # 상태 그룹 정의
+        ONGOING_STATUSES = ['단순조회중', '신용조회중', '서류수취중', '심사중', '승인', '자서예정', '기표예정']
+        COMPLETED_STATUSES = ['용도증빙', '완료']
+
+        # 신규 케이스
         new_cases_today = LoanCase.objects.filter(created_at__date=today).count()
         new_cases_yesterday = LoanCase.objects.filter(created_at__date=yesterday).count()
 
-        ongoing_cases_today = LoanCase.objects.exclude(status='완료').count()
+        # 진행중 케이스 (정의된 상태들만)
+        ongoing_cases_today = LoanCase.objects.filter(status__in=ONGOING_STATUSES).count()
         ongoing_cases_yesterday = LoanCase.objects.filter(
-            created_at__date__lte=yesterday
-        ).exclude(status='완료').count()
+            created_at__date__lte=yesterday,
+            status__in=ONGOING_STATUSES
+        ).count()
+
+        # 완료 케이스 (30일 이내)
+        thirty_days_ago = today - timedelta(days=30)
+        completed_cases_today = LoanCase.objects.filter(
+            status__in=COMPLETED_STATUSES,
+            created_at__date__gte=thirty_days_ago
+        ).count()
+        completed_cases_yesterday = LoanCase.objects.filter(
+            status__in=COMPLETED_STATUSES,
+            created_at__date__gte=thirty_days_ago - timedelta(days=1),
+            created_at__date__lt=today
+        ).count()
 
         return {
             'new_cases': new_cases_today,
             'new_cases_diff': new_cases_today - new_cases_yesterday,
             'ongoing_cases': ongoing_cases_today,
             'ongoing_cases_diff': ongoing_cases_today - ongoing_cases_yesterday,
+            'completed_cases': completed_cases_today,
+            'completed_cases_diff': completed_cases_today - completed_cases_yesterday,
         }
 
     @staticmethod

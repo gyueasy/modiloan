@@ -38,37 +38,37 @@ class CaseDetailManager {
             console.log('Already initialized, skipping...');
             return;
         }
-    
+
         console.group('CaseDetailManager Initialization');
         try {
             console.log('[1] Starting initialization...');
             await this.waitForDOM();
             console.log('[2] DOM ready');
-    
+
             this.initializeEndpoints();
             console.log('[3] Endpoints initialized');
-    
+
             this.initializeDOMElements();
             console.log('[4] DOM elements initialized');
-    
+
             await this.loadInitialData();
             console.log('[5] Initial data loaded');
-    
+
             // 여기로 이동
             window.loanCaseApp.initialized = true;
             console.log('[6] App initialization flag set');
             document.dispatchEvent(new Event('appInitialized'));
             console.log('[7] App initialized event dispatched');
-    
+
             await this.initializeManagers();
             console.log('[8] Managers initialized');
-    
+
             this.setupEventListeners();
             console.log('[9] Event listeners setup complete');
-    
+
             this.isInitialized = true;
             console.log('[10] Case detail manager initialization complete');
-    
+
         } catch (error) {
             console.error('Initialization failed:', error);
             window.authUtils.showToast('에러', '초기화 중 오류가 발생했습니다.', 'error');
@@ -118,33 +118,33 @@ class CaseDetailManager {
             // 앱 초기화 플래그 먼저 설정
             window.loanCaseApp.initialized = true;
             console.log('[1] App initialization flag set');
-            
+
             document.dispatchEvent(new Event('appInitialized'));
             console.log('[2] App initialized event dispatched');
-    
+
             // 그 다음 매니저들 초기화
             console.log('[3] Starting manager initialization sequence');
-    
+
             console.log('[4] Loading Comment Manager module');
             const CommentManager = (await import('./comment.js')).default;
             console.log('[5] Comment Manager module loaded');
             this.commentManager = new CommentManager();
             await this.commentManager.initialize();
-    
+
             console.log('[6] Loading ConsultingLog Manager module');
             const ConsultingLogManager = (await import('./consulting_log.js')).default;
             console.log('[7] ConsultingLog Manager module loaded');
             this.consultingLogManager = new ConsultingLogManager();
             await this.consultingLogManager.initialize();
-    
+
             console.log('[8] Loading Event Manager module');
             const EventManager = (await import('./event.js')).default;
             console.log('[9] Event Manager module loaded');
             this.eventManager = new EventManager();
             await this.eventManager.initialize();
-    
+
             console.log('[10] All managers initialized successfully');
-    
+
         } catch (error) {
             console.error('Manager initialization failed:', error);
             window.authUtils.showToast('에러', '일부 기능을 초기화하지 못했습니다.', 'error');
@@ -157,27 +157,27 @@ class CaseDetailManager {
     initializeDOMElements() {
         console.group('DOM Element Initialization');
         console.log('Document ready state:', document.readyState);
-    
+
         // form 찾기
         const form = document.getElementById('caseForm');
         console.log('Found form element:', form);
         console.log('Form HTML:', form?.outerHTML);
-    
+
         if (!form) {
             console.error('Form element missing');
             console.log('All forms on page:', document.forms);
             console.log('Current page HTML:', document.body.innerHTML);
             throw new Error('Required form element not found');
         }
-    
+
         this.form = form;
-    
+
         // 이벤트 리스너 바인딩
         console.log('Adding event listeners to form');
         const boundHandleFormChange = this.handleFormChange.bind(this);  // this 바인딩 추가
         this.form.addEventListener('change', boundHandleFormChange);
         this.form.addEventListener('input', boundHandleFormChange);
-    
+
         // 나머지 DOM 요소들 초기화
         this.statusSelect = document.getElementById('statusSelect');
         this.urgentToggle = document.getElementById('urgentToggle');
@@ -188,11 +188,11 @@ class CaseDetailManager {
         this.priorLoansTable = document.getElementById('priorLoansTable');
         this.addProviderBtn = document.getElementById('addProviderBtn');
         this.addPriorLoanBtn = document.getElementById('addPriorLoanBtn');
-    
+
         if (this.statusSelect) {
             this.previousStatus = this.statusSelect.value;
         }
-    
+
         console.log('DOM Elements initialized:', {
             form: !!this.form,
             statusSelect: !!this.statusSelect,
@@ -216,17 +216,17 @@ class CaseDetailManager {
             if (modal) modal.classList.remove('hidden');
         });
 
-        this.providersTable?.addEventListener('click', e => {
-            const button = e.target.closest('button');
-            if (!button) return;
+        // this.providersTable?.addEventListener('click', e => {
+        //     const button = e.target.closest('button');
+        //     if (!button) return;
 
-            const id = button.dataset.id;
-            if (button.classList.contains('edit-provider')) {
-                this.editProvider(id);
-            } else if (button.classList.contains('delete-provider')) {
-                this.deleteProvider(id);
-            }
-        });
+        //     const id = button.dataset.id;
+        //     if (button.classList.contains('edit-provider')) {
+        //         this.editProvider(id);
+        //     } else if (button.classList.contains('delete-provider')) {
+        //         this.deleteProvider(id);
+        //     }
+        // });
 
         this.priorLoansTable?.addEventListener('click', e => {
             const button = e.target.closest('button');
@@ -256,10 +256,11 @@ class CaseDetailManager {
                 throw new Error('Form not initialized');
             }
     
-            console.log('Fetching initial data...');
-
             const data = await window.authUtils.fetchWithAuth(this.endpoints.detail);
+            console.log('Initial fetch data:', data);  // 이제 data 선언 후에 사용
             this.populateFormData(data);
+
+            console.log('After set borrowerName:', window.loanCaseApp); // 로그 추가
 
             console.log('Fetching comments from:', this.endpoints.comments);
             const commentsResponse = await window.authUtils.fetchWithAuth(this.endpoints.comments);
@@ -353,18 +354,18 @@ class CaseDetailManager {
         console.log('Form exists?', !!this.form);
         console.log('Is initialized?', this.isInitialized);
         console.log('this context:', this);
-    
+
         if (!this.form || !this.isInitialized) {
             console.warn('Form not ready for changes');
             console.groupEnd();
             return;
         }
-    
+
         if (window.loanCaseApp.saveTimer) {
             console.log('Clearing existing save timer');
             clearTimeout(window.loanCaseApp.saveTimer);
         }
-    
+
         console.log('Setting new save timer');
         window.loanCaseApp.saveTimer = setTimeout(() => {
             this.saveFormData();
@@ -377,23 +378,49 @@ class CaseDetailManager {
             console.error('Form not initialized');
             return;
         }
-
+    
         try {
             const cleanData = {};
             const formData = new FormData(this.form);
-
+    
+            // 새로 추가된 필드들
+            const newFields = [
+                'introducer', 
+                'loan_type', 
+                'business_number', 
+                'business_category', 
+                'business_item', 
+                'is_tenant',
+                'referrer'  // referrer 추가
+            ];
+    
             for (const [key, value] of formData.entries()) {
-                if (value !== '') {
+                // 빈 값이 아니거나 새로 추가된 필드인 경우 포함
+                if (value !== '' || newFields.includes(key)) {
                     cleanData[key] = value;
                 }
             }
-
+    
+            // 체크박스 필드 처리
             this.form.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
                 cleanData[checkbox.name] = checkbox.checked;
             });
-
+    
+            // 대출 유형과 새로 추가된 필드들 명시적으로 처리
+            newFields.forEach(field => {
+                const element = this.form.elements[field];
+                if (element) {
+                    if (field === 'is_tenant') {
+                        cleanData[field] = element.checked;
+                    } else {
+                        // 빈 문자열이면 null로 처리
+                        cleanData[field] = element.value.trim() || null;
+                    }
+                }
+            });
+    
             console.log('Saving form data:', cleanData);
-
+    
             const response = await window.authUtils.fetchWithAuth(
                 this.endpoints.update,
                 {
@@ -401,14 +428,14 @@ class CaseDetailManager {
                     body: JSON.stringify(cleanData)
                 }
             );
-
+    
             if (response && response.loan_case) {
                 this.populateFormData(response);
                 window.authUtils.showToast('성공', '데이터가 저장되었습니다.', 'success');
             } else {
                 throw new Error('저장된 데이터를 받지 못했습니다.');
             }
-
+    
         } catch (error) {
             console.error('Save error:', error);
             window.authUtils.showToast('에러', '데이터 저장 중 오류가 발생했습니다.', 'error');
@@ -417,35 +444,35 @@ class CaseDetailManager {
 
     populateFormData(data) {
         console.log('Received data:', data);
-
+        
         if (!data.loan_case) return;
-
+        
         const headerTitle = document.querySelector('h1');
         if (headerTitle) {
             headerTitle.textContent = data.loan_case.borrower_name ?
                 `${data.loan_case.borrower_name}님의 대출 건` : '신규 대출 건';
         }
-
+        
         if (this.statusSelect && data.status_choices) {
             this.statusSelect.innerHTML = '';
             Object.entries(data.status_choices).forEach(([value, label]) => {
                 const option = new Option(label, value);
                 this.statusSelect.add(option);
             });
-
+            
             if (data.loan_case.status) {
                 this.statusSelect.value = data.loan_case.status;
                 this.previousStatus = data.loan_case.status;
             }
         }
-
+        
         if (data.security_providers) {
             this.renderSecurityProviders(data.security_providers);
         }
         if (data.prior_loans) {
             this.renderPriorLoans(data.prior_loans);
         }
-
+        
         if (this.urgentToggle) {
             if (data.loan_case.is_urgent) {
                 this.urgentToggle.classList.add('bg-red-100', 'text-red-700');
@@ -455,25 +482,46 @@ class CaseDetailManager {
                 this.urgentToggle.classList.remove('bg-red-100', 'text-red-700');
             }
         }
-
+        
         const formElements = this.form.elements;
-
+        
+        // 새로 추가된 필드들 포함
+        const newFields = [
+            'introducer', 
+            'loan_type', 
+            'business_number', 
+            'business_category', 
+            'business_item', 
+            'is_tenant'
+        ];
+        
         Object.entries(data.loan_case).forEach(([key, value]) => {
             const element = formElements[key];
             if (!element) return;
-
+            
             if (element.type === 'checkbox') {
                 element.checked = Boolean(value);
             } else if (element.type === 'select-one' && value === null) {
                 element.selectedIndex = 0;
             } else {
-                element.value = value ?? '';
+                // 새로 추가된 필드들도 처리
+                if (newFields.includes(key)) {
+                    element.value = value ?? '';
+                } else {
+                    element.value = value ?? '';
+                }
             }
         });
-
+        
         this.populateSelectOptions('business_type', data.business_type_choices, data.loan_case.business_type);
         this.populateSelectOptions('vat_status', data.vat_status_choices, data.loan_case.vat_status);
         this.populateSelectOptions('price_type', data.price_type_choices, data.loan_case.price_type);
+        
+        // 새로 추가된 대출 유형 셀렉트 옵션
+        const loanTypeSelect = this.form.elements['loan_type'];
+        if (loanTypeSelect && data.loan_case.loan_type) {
+            loanTypeSelect.value = data.loan_case.loan_type;
+        }
     }
 
     populateSelectOptions(elementName, choices, selectedValue) {

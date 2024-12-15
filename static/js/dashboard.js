@@ -1,3 +1,19 @@
+console.log('대시보드 스크립트 시작');
+
+// 전역 변수 설정 전에 FullCalendar 확인
+if (typeof FullCalendar === 'undefined') {
+    console.error('FullCalendar가 로드되지 않았습니다');
+}
+
+// DOM이 준비되었는지 가장 기본적인 방법으로 확인
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        console.log('DOM 로드됨 - 기본');
+    });
+} else {
+    console.log('DOM 이미 로드됨 - 기본');
+}
+
 // 전역 변수 설정
 let calendar;
 let apiResponseCache = null;
@@ -180,64 +196,58 @@ const Dashboard = {
     },
 
     async updateEvents() {
-        const events = await fetchWithAuth('/api/events/');
-        if (!events) return;
-        
-        eventsResponseCache = events;
-        
-        if (calendar) {
+        console.log('updateEvents 시작');
+        try {
+            const response = await fetchWithAuth('/api/events/');
+            console.log('이벤트 API 응답:', response);
+            
+            if (!response) {
+                console.warn('이벤트 응답이 없습니다.');
+                return;
+            }
+            
+            eventsResponseCache = response;
+            
+            if (!calendar) {
+                console.warn('캘린더가 초기화되지 않았습니다.');
+                return;
+            }
+            
             calendar.removeAllEvents();
             
-            const calendarEvents = events.flatMap(event => [
-                // 자서예정일 이벤트
-                {
-                    id: `auth-${event.id}`,
-                    title: `${event.title} (자서)`,
-                    start: event.authorizing_date,
-                    backgroundColor: '#1E88E5', // 파란색
-                    extendedProps: {
-                        description: event.description,
-                        loan_case: event.loan_case,
-                        type: '자서예정일'
-                    }
-                },
-                // 기표예정일 이벤트
-                {
-                    id: `journal-${event.id}`,
-                    title: `${event.title} (기표)`,
-                    start: event.journalizing_date,
-                    backgroundColor: '#43A047', // 초록색
-                    extendedProps: {
-                        description: event.description,
-                        loan_case: event.loan_case,
-                        type: '기표예정일'
-                    }
-                },
-                // 고객요청일 이벤트
-                ...(event.scheduled_date ? [{
-                    id: `schedule-${event.id}`,
-                    title: `${event.title} (고객요청)`,
-                    start: event.scheduled_date,
-                    backgroundColor: '#FB8C00', // 주황색
-                    extendedProps: {
-                        description: event.description,
-                        loan_case: event.loan_case,
-                        type: '고객요청일'
-                    }
-                }] : [])
-            ]);
+            const calendarEvents = response.map(event => ({
+                id: event.id,
+                title: event.title,
+                start: event.date,
+                backgroundColor: this.getEventTypeColor(event.event_type),
+                extendedProps: {
+                    description: event.description,
+                    loan_case: event.loan_case,
+                    type: event.event_type
+                }
+            }));
             
+            console.log('변환된 캘린더 이벤트:', calendarEvents);
             calendar.addEventSource(calendarEvents);
+            console.log('캘린더 이벤트 추가 완료');
+            
+        } catch (error) {
+            console.error('이벤트 업데이트 중 에러:', error);
         }
     },
 
-    getEventColor(title) {
-        // 이벤트 제목에 따른 색상 결정
-        if (title.includes('자서')) return '#1E88E5';
-        if (title.includes('기표')) return '#1976D2';
-        if (title.includes('심사')) return '#42A5F5';
-        if (title.includes('승인')) return '#2196F3';
-        return '#90CAF9'; // 기본 색상
+    getEventTypeColor(eventType) {
+        // API의 event_type에 따른 색상 매핑
+        switch (eventType) {
+            case 'scheduled':
+                return '#FB8C00';  // 접수 - 주황색
+            case 'authorizing':
+                return '#1E88E5';  // 자서 - 파란색
+            case 'journalizing':
+                return '#43A047';  // 기표 - 초록색
+            default:
+                return '#90CAF9';  // 기본 색상
+        }
     },
 
     startAutoRefresh() {
@@ -251,8 +261,12 @@ const Dashboard = {
 // 캘린더 초기화
 function initializeCalendar() {
     const calendarEl = document.getElementById('calendar');
-    if (!calendarEl) return;
+    if (!calendarEl) {
+        console.error('캘린더 요소를 찾을 수 없습니다.');
+        return;
+    }
 
+    console.log('캘린더 초기화 시작');
     calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: 'dayGridMonth',
         headerToolbar: {
@@ -264,7 +278,10 @@ function initializeCalendar() {
         height: 'auto',
         eventClick: function(info) {
             const event = info.event;
-            const props = event.extendedProps;
+            const loanCaseId = event.extendedProps.loan_case;
+            if (loanCaseId) {
+                window.location.href = `/web/cases/${loanCaseId}/`;
+            }
             
             Modal.show('이벤트 상세정보', {
                 제목: event.title,
@@ -286,6 +303,7 @@ function initializeCalendar() {
     });
     
     calendar.render();
+    console.log('캘린더 초기화 완료');
 }
 
 // 이벤트 리스너 설정
@@ -314,12 +332,22 @@ function setupEventListeners() {
 
 // 초기화 함수
 function initialize() {
+    console.log('초기화 시작');
     setupEventListeners();
     initializeCalendar();
     Dashboard.updateStats();
     Dashboard.updateEvents();
     Dashboard.startAutoRefresh();
+    console.log('초기화 완료');
 }
 
-// 페이지 로드 시 초기화
-document.addEventListener('DOMContentLoaded', initialize);
+// 페이지 로드 시 초기화 (단일 이벤트 리스너로 통일)
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        console.log('DOMContentLoaded 이벤트 발생');
+        initialize();
+    });
+} else {
+    console.log('문서가 이미 로드됨');
+    initialize();
+}

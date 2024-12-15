@@ -58,7 +58,7 @@ class SecurityProviderManager {
 
     setupEventListeners() {
         this.addProviderBtn?.addEventListener('click', () => this.openModal());
-        
+
         this.providerForm?.addEventListener('submit', (e) => {
             e.preventDefault();
             this.handleSubmit();
@@ -77,10 +77,10 @@ class SecurityProviderManager {
 
     async renderProvidersTable() {
         if (!this.providersTable) return;
-    
+
         const providers = window.loanCaseApp.securityProviders || [];
         console.log('Rendering providers:', providers);
-        
+
         this.providersTable.innerHTML = `
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
@@ -93,25 +93,25 @@ class SecurityProviderManager {
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
-                    ${providers.length > 0 
-                        ? providers.map(provider => this.renderProviderRow(provider)).join('')
-                        : `<tr>
+                    ${providers.length > 0
+                ? providers.map(provider => this.renderProviderRow(provider)).join('')
+                : `<tr>
                             <td colspan="5" class="px-6 py-4 text-center text-gray-500">
                                 등록된 담보제공자가 없습니다.
                             </td>
                         </tr>`
-                    }
+            }
                 </tbody>
             </table>
         `;
-    
+
         // 이벤트 리스너 바인딩
         const editButtons = this.providersTable.querySelectorAll('.edit-provider');
         const deleteButtons = this.providersTable.querySelectorAll('.delete-provider');
-    
+
         console.log('Found edit buttons:', editButtons.length);
         console.log('Found delete buttons:', deleteButtons.length);
-    
+
         editButtons.forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -119,7 +119,7 @@ class SecurityProviderManager {
                 this.openModal(btn.dataset.id);
             });
         });
-    
+
         deleteButtons.forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -154,7 +154,7 @@ class SecurityProviderManager {
 
     async openModal(providerId = null) {
         this.currentProviderId = providerId;
-        
+
         if (providerId) {
             try {
                 const provider = await window.authUtils.fetchWithAuth(
@@ -168,7 +168,7 @@ class SecurityProviderManager {
         } else {
             this.providerForm?.reset();
         }
-        
+
         this.providerModal?.classList.remove('hidden');
     }
 
@@ -183,26 +183,16 @@ class SecurityProviderManager {
             const formData = new FormData(this.providerForm);
             const data = Object.fromEntries(formData);
             
-            // 데이터 정제
-            Object.keys(data).forEach(key => {
-                if (data[key] === '') {
-                    data[key] = null;
-                }
-            });
-    
-            if (data.credit_score) {
-                data.credit_score = parseInt(data.credit_score);
-            }
-    
-            // 모달 먼저 닫기
-            this.closeModal();
-    
-            // 로딩 표시
-            window.authUtils.showToast('알림', '저장 중...', 'info');
+            // 요청 데이터 확인
+            console.group('Provider Submit');
+            console.log('Submitting data:', data);
+            console.log('URL:', this.currentProviderId 
+                ? `${this.endpoints.base}${this.currentProviderId}/`
+                : this.endpoints.base);
     
             // 데이터 저장
             const saveResponse = await window.authUtils.fetchWithAuth(
-                this.currentProviderId 
+                this.currentProviderId
                     ? `${this.endpoints.base}${this.currentProviderId}/`
                     : this.endpoints.base,
                 {
@@ -213,50 +203,57 @@ class SecurityProviderManager {
                     body: JSON.stringify(data)
                 }
             );
+            
+            console.log('Save Response:', saveResponse);
     
             // 전체 데이터 다시 불러오기
+            console.log('Fetching updated list...');
             const updatedData = await window.authUtils.fetchWithAuth(this.endpoints.base);
+            console.log('Updated data:', updatedData);
             
-            // API 응답 구조에 따라 배열 추출
-            const updatedProviders = Array.isArray(updatedData) ? updatedData : updatedData.security_providers || [];
+            // 전역 상태 업데이트 전 확인
+            const updatedProviders = Array.isArray(updatedData) ? updatedData : [];
+            console.log('Providers to update:', updatedProviders);
             
-            // 전역 상태 업데이트
             window.loanCaseApp.securityProviders = updatedProviders;
+            console.log('Updated global state:', window.loanCaseApp.securityProviders);
             
-            // 한 번만 렌더링
             await this.renderProvidersTable();
-            
+            console.groupEnd();
+    
+            this.closeModal();
             window.authUtils.showToast('성공', '담보제공자 정보가 저장되었습니다.', 'success');
-            
+    
         } catch (error) {
             console.error('Submit error:', error);
             window.authUtils.showToast('에러', error.message, 'error');
+            console.groupEnd();
         }
     }
-    
+
     async deleteProvider(providerId) {
         if (!confirm('정말 삭제하시겠습니까?')) return;
-        
+
         try {
             // 삭제 요청
             await window.authUtils.fetchWithAuth(
                 `${this.endpoints.base}${providerId}/`,
                 { method: 'DELETE' }
             );
-    
+
             // 새로운 데이터 전체 다시 불러오기
             const result = await window.authUtils.fetchWithAuth(this.endpoints.base);
-            
+
             // API 응답 구조에 따라 배열 추출
             const updatedProviders = Array.isArray(result) ? result : result.security_providers || [];
-            
+
             // 전역 상태 업데이트
             window.loanCaseApp.securityProviders = updatedProviders;
-                
+
             // UI 업데이트
             await this.renderProvidersTable();
             window.authUtils.showToast('성공', '담보제공자가 삭제되었습니다.', 'success');
-            
+
         } catch (error) {
             window.authUtils.showToast('에러', error.message, 'error');
         }

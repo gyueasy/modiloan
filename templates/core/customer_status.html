@@ -1,0 +1,250 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container max-w-7xl mx-auto px-4 py-6">
+    <!-- 상단 통계 박스 -->
+    <div class="grid grid-cols-1 md:grid-cols-6 gap-4 mb-6">
+        <!-- 접수 -->
+        <div class="status-box bg-white rounded-lg shadow-sm p-4 hover:shadow-md transition cursor-pointer" data-status-group="reception">
+            <h3 class="text-lg font-semibold text-gray-700 mb-2">접수</h3>
+            <p class="text-2xl font-bold text-blue-600" id="reception-count">0</p>
+            <p class="text-sm text-gray-500">단순조회중, 신용조회중</p>
+        </div>
+
+        <!-- 진행중 -->
+        <div class="status-box bg-white rounded-lg shadow-sm p-4 hover:shadow-md transition cursor-pointer" data-status-group="ongoing">
+            <h3 class="text-lg font-semibold text-gray-700 mb-2">진행중</h3>
+            <p class="text-2xl font-bold text-yellow-600" id="ongoing-count">0</p>
+            <p class="text-sm text-gray-500">서류수취중, 심사중</p>
+        </div>
+
+        <!-- 자서기표 -->
+        <div class="status-box bg-white rounded-lg shadow-sm p-4 hover:shadow-md transition cursor-pointer" data-status-group="signing">
+            <h3 class="text-lg font-semibold text-gray-700 mb-2">자서기표</h3>
+            <p class="text-2xl font-bold text-green-600" id="signing-count">0</p>
+            <p class="text-sm text-gray-500">승인, 자서예정, 기표예정</p>
+        </div>
+
+        <!-- 용도증빙 -->
+        <div class="status-box bg-white rounded-lg shadow-sm p-4 hover:shadow-md transition cursor-pointer" data-status-group="proof">
+            <h3 class="text-lg font-semibold text-gray-700 mb-2">용도증빙</h3>
+            <p class="text-2xl font-bold text-purple-600" id="proof-count">0</p>
+            <p class="text-sm text-gray-500">용도증빙</p>
+        </div>
+
+        <!-- 완료 -->
+        <div class="status-box bg-white rounded-lg shadow-sm p-4 hover:shadow-md transition cursor-pointer" data-status-group="completed">
+            <h3 class="text-lg font-semibold text-gray-700 mb-2">완료</h3>
+            <p class="text-2xl font-bold text-indigo-600" id="completed-count">0</p>
+            <p class="text-sm text-gray-500">용도증빙, 완료</p>
+        </div>
+
+        <!-- 취소및종료 -->
+        <div class="status-box bg-white rounded-lg shadow-sm p-4 hover:shadow-md transition cursor-pointer" data-status-group="cancelled">
+            <h3 class="text-lg font-semibold text-gray-700 mb-2">취소및종료</h3>
+            <p class="text-2xl font-bold text-red-600" id="cancelled-count">0</p>
+            <p class="text-sm text-gray-500">취소, 거절, 보류</p>
+        </div>
+    </div>
+
+    <!-- 상태별 케이스 목록 -->
+    <div id="status-detail-container" class="bg-white rounded-lg shadow-sm p-6">
+        <!-- 동적으로 생성될 상태별 컨테이너들 -->
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // 상태 그룹 정의
+    const STATUS_GROUPS = {
+        reception: {
+            title: '접수 진행 케이스',
+            statuses: ['단순조회중', '신용조회중'],
+            color: 'blue'
+        },
+        ongoing: {
+            title: '심사 진행 케이스',
+            statuses: ['서류수취중', '심사중'],
+            color: 'yellow'
+        },
+        signing: {
+            title: '자서/기표 진행 케이스',
+            statuses: ['승인', '자서예정', '기표예정'],
+            color: 'green'
+        },
+        proof: {
+            title: '용도증빙 케이스',
+            statuses: ['용도증빙'],
+            color: 'purple'
+        },
+        completed: {
+            title: '완료된 케이스',
+            statuses: ['완료'],
+            color: 'indigo'
+        },
+        cancelled: {
+            title: '취소/종료된 케이스',
+            statuses: ['취소', '거절', '보류'],
+            color: 'red'
+        }
+    };
+
+    // 전역 변수
+    let casesData = null;
+    let activeGroup = null;
+
+    // 초기화 함수
+    async function initialize() {
+        console.log('초기화 시작');
+        await loadCases();
+        setupEventListeners();
+        displayCasesByGroup('reception'); // 기본값으로 접수 그룹 표시
+    }
+
+    // 이벤트 리스너 설정
+    function setupEventListeners() {
+        document.querySelectorAll('.status-box').forEach(box => {
+            box.addEventListener('click', () => {
+                const group = box.dataset.statusGroup;
+                console.log('상태 박스 클릭:', group);
+                displayCasesByGroup(group);
+                updateActiveBox(box);
+            });
+        });
+    }
+
+    // API로부터 케이스 데이터 로드
+    async function loadCases() {
+        try {
+            const response = await window.authUtils.fetchWithAuth('/api/cases/');
+            console.log('API 응답:', response);
+            if (!response) return;
+
+            casesData = response;
+            updateStatusCounts();
+        } catch (error) {
+            console.error('케이스 로드 중 에러:', error);
+            window.authUtils.showToast('에러', '데이터를 불러오는데 실패했습니다.', 'error');
+        }
+    }
+
+    // 상태별 카운트 업데이트
+    function updateStatusCounts() {
+        if (!casesData) return;
+
+        Object.entries(STATUS_GROUPS).forEach(([group, config]) => {
+            let count;
+            
+            if (group === 'completed' || group === 'cancelled') {
+                const thirtyDaysAgo = new Date();
+                thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+                
+                count = casesData.filter(case_ => 
+                    config.statuses.includes(case_.status) && 
+                    new Date(case_.created_at) >= thirtyDaysAgo
+                ).length;
+            } else {
+                count = casesData.filter(case_ => 
+                    config.statuses.includes(case_.status)
+                ).length;
+            }
+            
+            const countElement = document.getElementById(`${group}-count`);
+            if (countElement) {
+                countElement.textContent = count;
+            }
+        });
+    }
+
+    // 선택된 그룹의 케이스 표시
+    function displayCasesByGroup(group) {
+        console.log('displayCasesByGroup 호출:', group);
+        if (!casesData) {
+            console.log('casesData 없음');
+            return;
+        }
+
+        const config = STATUS_GROUPS[group];
+        console.log('그룹 설정:', config);
+
+        let filteredCases;
+        if (group === 'completed' || group === 'cancelled') {
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            
+            filteredCases = casesData.filter(case_ => 
+                config.statuses.includes(case_.status) && 
+                new Date(case_.created_at) >= thirtyDaysAgo
+            );
+        } else {
+            filteredCases = casesData.filter(case_ => 
+                config.statuses.includes(case_.status)
+            );
+        }
+        console.log('필터링된 케이스:', filteredCases);
+
+        const container = document.getElementById('status-detail-container');
+        if (!container) {
+            console.error('컨테이너를 찾을 수 없음');
+            return;
+        }
+
+        // 상태별로 케이스 그룹화
+        const casesByStatus = {};
+        config.statuses.forEach(status => {
+            casesByStatus[status] = filteredCases.filter(case_ => case_.status === status);
+        });
+
+        // HTML 생성
+        container.innerHTML = `
+            <h2 class="text-xl font-bold text-gray-900 mb-6">${config.title}</h2>
+            <div class="grid grid-cols-${config.statuses.length} gap-8">
+                ${config.statuses.map(status => `
+                    <div class="status-column">
+                        <h3 class="text-lg font-semibold mb-4 bg-${config.color}-100 text-${config.color}-800 p-3 rounded text-center">
+                            ${status} (${casesByStatus[status].length})
+                        </h3>
+                        <div class="space-y-4">
+                            ${casesByStatus[status].map(case_ => `
+                                <div class="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition cursor-pointer shadow-sm"
+                                    onclick="window.location.href='/web/cases/${case_.id}/'">
+                                    <div class="flex justify-between items-start mb-2">
+                                        <h4 class="font-semibold text-gray-900">${case_.borrower_name}</h4>
+                                    </div>
+                                    <p class="text-sm text-gray-600 mb-2">${case_.address_main || '-'}</p>
+                                    <div class="flex justify-between items-center text-sm">
+                                        <span class="text-gray-600">대출금: ${formatAmount(case_.loan_amount)}만원</span>
+                                        <span class="text-gray-600">금리: ${case_.interest_rate || '-'}%</span>
+                                    </div>
+                                </div>
+                            `).join('')}
+                            ${casesByStatus[status].length === 0 ? 
+                                '<p class="text-gray-500 text-center py-4">케이스가 없습니다.</p>' : 
+                                ''}
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+
+    // 금액 포맷팅
+    function formatAmount(amount) {
+        if (!amount) return '-';
+        return amount.toLocaleString();
+    }
+
+    // 활성 박스 스타일 업데이트
+    function updateActiveBox(selectedBox) {
+        document.querySelectorAll('.status-box').forEach(box => {
+            box.classList.remove('ring-2', 'ring-blue-500');
+        });
+        selectedBox.classList.add('ring-2', 'ring-blue-500');
+    }
+
+    // 페이지 로드 시 초기화
+    document.addEventListener('DOMContentLoaded', initialize);
+</script>
+{% endblock %}

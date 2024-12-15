@@ -46,6 +46,10 @@ urlpatterns = [
     path('cases/<int:case_id>/comments/', views.comment_view, name='comment_list'),
     path('cases/<int:case_id>/comments/<int:comment_id>/', views.comment_detail_view, name='comment_detail'),
     path('cases/<int:case_id>/comments/mark-read/', views.mark_comments_as_read, name='mark_comments_read'),
+
+    # Export to CSV
+    path('cases/export-csv/', views.export_cases_to_csv, name='export_cases_to_csv'),
+    path('cases/import-csv/', views.import_cases_from_csv, name='import_cases_from_csv'),
 ]
 
 # CopyDashboard:

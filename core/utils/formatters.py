@@ -39,18 +39,32 @@ def format_birth_date(birth_date):
     except:
         return birth_date
 
-def format_phone_number(phone):
-    """전화번호 포맷팅 (예: 01012345678 -> 010-1234-5678)"""
-    if not phone:
+def format_phone_number(phone_number):
+    """
+    휴대폰 번호를 010-XXXX-XXXX 형식으로 변환
+    지원하는 입력 형식:
+    - 010-222-2345
+    - 0102222345
+    - 010-2222-2345
+    - 01022222345
+    """
+    if not phone_number:
         return ''
     
-    phone = ''.join(filter(str.isdigit, phone))
+    # 숫자만 추출
+    digits = ''.join(filter(str.isdigit, phone_number))
     
-    if len(phone) == 11:
-        return f"{phone[:3]}-{phone[3:7]}-{phone[7:]}"
-    elif len(phone) == 10:
-        return f"{phone[:3]}-{phone[3:6]}-{phone[6:]}"
-    return phone
+    # 010으로 시작하는 10자리 또는 11자리 번호
+    if (len(digits) == 10 or len(digits) == 11) and digits.startswith('010'):
+        if len(digits) == 10:
+            # 0102222345 형식
+            return f'{digits[:3]}-{digits[3:6]}-{digits[6:]}'
+        else:
+            # 01022222345 형식
+            return f'{digits[:3]}-{digits[3:7]}-{digits[7:]}'
+    
+    # 변환 불가능한 경우 원본 반환
+    return phone_number
 
 def format_amount(amount):
     """금액 포맷팅 (단위: 만원)"""

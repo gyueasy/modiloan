@@ -15,24 +15,44 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# Serializer 정의
 # core/views/event_views.py
+
 class EventSerializer(serializers.ModelSerializer):
+    event_type = serializers.ChoiceField(choices=[
+        ('scheduled', '접수'),
+        ('authorizing', '자서'),
+        ('journalizing', '기표')
+    ])
+    date = serializers.DateField()
+
     class Meta:
         model = Event
-        fields = '__all__'
+        fields = ['id', 'title', 'description', 'event_type', 'date', 'loan_case']
 
-    def create(self, validated_data):
-        # loan_case_id를 받아서 처리
-        loan_case_id = validated_data.pop('loan_case_id', None)  # loan_case_id를 가져오기
-        if loan_case_id:
-            loan_case = LoanCase.objects.get(id=loan_case_id)  # loan_case 객체를 가져오기
-            event = Event.objects.create(loan_case=loan_case, **validated_data)  # loan_case를 할당하여 이벤트 생성
-        else:
-            event = Event.objects.create(**validated_data)
-        return event
-    
-# Event API View 정의
+    def validate(self, data):
+        """
+        이벤트 타입과 날짜 관련 추가 검증
+        """
+        event_type = data.get('event_type')
+        date = data.get('date')
+        loan_case = data.get('loan_case')
+
+        if not date and loan_case:
+            # loan_case의 기본 날짜를 사용
+            if event_type == 'authorizing':
+                date = loan_case.authorizing_date
+            elif event_type == 'journalizing':
+                date = loan_case.journalizing_date
+            elif event_type == 'scheduled':
+                date = loan_case.scheduled_date
+            data['date'] = date
+
+        if not date:
+            raise serializers.ValidationError("날짜는 필수 항목입니다.")
+
+        return data
+
+
 class EventListCreateAPIView(generics.ListCreateAPIView):
     serializer_class = EventSerializer
     permission_classes = [IsAuthenticated, CanManageEvent]
@@ -40,13 +60,28 @@ class EventListCreateAPIView(generics.ListCreateAPIView):
     def create(self, request, *args, **kwargs):
         logger.info(f"Creating event with data: {request.data}")
         try:
-            return super().create(request, *args, **kwargs)
+            # 단일 이벤트 또는 여러 이벤트 생성 처리
+            if isinstance(request.data, list):
+                serializer = self.get_serializer(data=request.data, many=True)
+            else:
+                serializer = self.get_serializer(data=request.data)
+            
+            serializer.is_valid(raise_exception=True)
+            self.perform_create(serializer)
+            
+            headers = self.get_success_headers(serializer.data)
+            return Response(
+                serializer.data, 
+                status=status.HTTP_201_CREATED, 
+                headers=headers
+            )
         except Exception as e:
             logger.error(f"Error creating event: {str(e)}")
             return Response(
                 {"error": str(e)}, 
                 status=status.HTTP_400_BAD_REQUEST
             )
+
 
 class EventListView(generics.ListAPIView):
     serializer_class = EventSerializer
@@ -55,7 +90,6 @@ class EventListView(generics.ListAPIView):
         start_str = self.request.GET.get('start')
         end_str = self.request.GET.get('end')
 
-        # start와 end 파라미터가 없으면 기본적으로 30일 전후로 설정
         if not start_str or not end_str:
             today = datetime.now()
             start_date = today - timedelta(days=30)
@@ -64,13 +98,7 @@ class EventListView(generics.ListAPIView):
             start_date = datetime.strptime(start_str, '%Y-%m-%d')
             end_date = datetime.strptime(end_str, '%Y-%m-%d')
 
-        # 이벤트를 날짜 범위로 필터링
-        return Event.objects.filter(scheduled_date__range=[start_date, end_date])
-
-class EventDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Event.objects.all()
-    serializer_class = EventSerializer
-    permission_classes = [IsAuthenticated, CanManageEvent]
+        return Event.objects.filter(date__range=[start_date, end_date])
 
 
 class CaseEventListView(generics.ListAPIView):
@@ -80,3 +108,32 @@ class CaseEventListView(generics.ListAPIView):
     def get_queryset(self):
         case_id = self.kwargs.get('case_id')
         return Event.objects.filter(loan_case_id=case_id)
+    
+# core/views/event_views.py
+
+class EventDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Event.objects.all()
+    serializer_class = EventSerializer
+    permission_classes = [IsAuthenticated, CanManageEvent]
+
+    def update(self, request, *args, **kwargs):
+        logger.info(f"Updating event with data: {request.data}")
+        try:
+            return super().update(request, *args, **kwargs)
+        except Exception as e:
+            logger.error(f"Error updating event: {str(e)}")
+            return Response(
+                {"error": str(e)}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+    def destroy(self, request, *args, **kwargs):
+        logger.info(f"Deleting event with id: {kwargs.get('pk')}")
+        try:
+            return super().destroy(request, *args, **kwargs)
+        except Exception as e:
+            logger.error(f"Error deleting event: {str(e)}")
+            return Response(
+                {"error": str(e)}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )

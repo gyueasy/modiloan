@@ -12,6 +12,7 @@ from .consulting_views import consulting_log_view, consulting_log_detail_view
 from .comment_views import comment_view, comment_detail_view, mark_comments_as_read
 from .event_views import EventListView
 from .case_views import case_delete_view
+from .csv_management_views import export_cases_to_csv, import_cases_from_csv
 
 # core/views/__init__.py
 # 기존 코드

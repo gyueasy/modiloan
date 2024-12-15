@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}CSV 관리 - MODI 대출관리{% endblock %}
+
+{% block extra_head %}
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="container max-w-7xl mx-auto px-4 py-6">
+    <div class="bg-white rounded-lg shadow-sm p-6">
+        <h1 class="text-2xl font-semibold mb-6">CSV 데이터 관리</h1>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- CSV 다운로드 섹션 -->
+            <div class="bg-gray-50 rounded-lg p-4">
+                <h2 class="text-xl font-semibold mb-4">대출 데이터 내보내기</h2>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">다운로드 옵션</label>
+                    <form id="csvExportForm" class="space-y-3">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">상태</label>
+                            <select name="status" class="mt-1 block w-full rounded-md border-gray-300">
+                                <option value="">전체</option>
+                                {% for value, label in status_choices.items %}
+                                <option value="{{ value }}">{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">날짜 범위</label>
+                            <div class="flex space-x-2">
+                                <input type="date" name="start_date" class="mt-1 block w-1/2 rounded-md border-gray-300">
+                                <input type="date" name="end_date" class="mt-1 block w-1/2 rounded-md border-gray-300">
+                            </div>
+                        </div>
+                        
+                        <button type="button" id="downloadCsvBtn" 
+                            class="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
+                            <span class="material-icons mr-2">download</span>
+                            CSV 다운로드
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- CSV 업로드 섹션 -->
+            <div class="bg-gray-50 rounded-lg p-4">
+                <h2 class="text-xl font-semibold mb-4">대출 데이터 가져오기</h2>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">CSV 파일 업로드</label>
+                    <div class="flex items-center justify-center w-full">
+                        <label class="flex flex-col items-center justify-center w-full h-40 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-100 hover:bg-gray-200">
+                            <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                                <span class="material-icons text-4xl text-gray-500 mb-2">upload_file</span>
+                                <p class="mb-2 text-sm text-gray-500">CSV 파일을 여기에 끌어다 놓거나 클릭하여 선택</p>
+                                <input type="file" id="csvUploadInput" accept=".csv" class="hidden">
+                            </div>
+                        </label>
+                    </div>
+                    <p id="fileSelectedName" class="mt-2 text-sm text-gray-500 text-center"></p>
+                </div>
+                
+                <button type="button" id="uploadCsvBtn" 
+                    class="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 disabled:opacity-50"
+                    disabled>
+                    <span class="material-icons mr-2">cloud_upload</span>
+                    CSV 업로드
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{% static 'js/case_csv_management.js' %}"></script>
+{% endblock %}

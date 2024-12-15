@@ -24,8 +24,10 @@ class LoanCase(models.Model):
     ]
 
     BUSINESS_TYPE_CHOICES = [
-        ('일반', '일반'),
-        ('간이', '간이'),
+        ('일반(실)', '일반(실)'),
+        ('일반(가)', '일반(가)'),
+        ('간이(실)', '간이(실)'),
+        ('간이(가)', '간이(가)'),
         ('면세', '면세'),
         ('법인', '법인'),
     ]
@@ -46,12 +48,20 @@ class LoanCase(models.Model):
         ('정감가', '정감가'),
     ]
 
+    LOAN_TYPE_CHOICES = [
+        ('신규', '신규'),
+        ('추가', '추가'),
+        ('대환', '대환'),
+    ]
+
     # 기본 정보
     status = models.CharField('진행상황', max_length=20, choices=STATUS_CHOICES, default='단순조회중', null=True, blank=True)
     referrer = models.CharField('레퍼', max_length=50, blank=True, null=True)
+    introducer = models.CharField('소개자', max_length=50, blank=True, null=True)  # 신규 소개자 필드
     manager = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, verbose_name='담당자')
     created_at = models.DateTimeField('생성일', auto_now_add=True, null=True, blank=True)
     updated_at = models.DateTimeField('수정일', auto_now=True, null=True, blank=True)
+    loan_type = models.CharField('대출 유형', max_length=10, choices=LOAN_TYPE_CHOICES, null=True, blank=True)  # 신규/추가/대환 선택
 
     # 차주 정보
     borrower_name = models.CharField(max_length=255)
@@ -74,6 +84,8 @@ class LoanCase(models.Model):
     is_above_4th_rank = models.BooleanField('4순위이상', default=False, null=True, blank=True)
     has_registration_issue = models.BooleanField('등기이상', default=False, null=True, blank=True)
     is_trading_price_low = models.BooleanField('실거래가열위', default=False, null=True, blank=True)
+    is_tenant = models.BooleanField('세입자', default=False, null=True, blank=True)  # 세입자 필드 추가
+
 
     # 시세정보
     price_type = models.CharField('시세구분', max_length=20, choices=PRICE_TYPE_CHOICES, null=True, blank=True)
@@ -81,6 +93,9 @@ class LoanCase(models.Model):
 
     # 사업자 정보
     business_type = models.CharField('사업자구분', max_length=10, choices=BUSINESS_TYPE_CHOICES, null=True, blank=True)
+    business_number = models.CharField('사업자번호', max_length=20, null=True, blank=True)  # 사업자번호 추가
+    business_category = models.CharField('업태', max_length=100, null=True, blank=True)  # 업태 추가
+    business_item = models.CharField('종목', max_length=100, null=True, blank=True)  # 종목 추가
     monthly_sales = models.IntegerField('현재매출', help_text='단위: 만원', null=True, blank=True)
     vat_status = models.CharField('부가세 신고 여부', max_length=20, choices=VAT_STATUS_CHOICES, null=True, blank=True)
     other_income = models.CharField('사업자외소득', max_length=200, blank=True, null=True)
@@ -166,6 +181,75 @@ class LoanCase(models.Model):
     def borrower_age(self):
         """차주의 만 나이 계산"""
         return self._calculate_age(self.borrower_birth)
+    
+    @property
+    def status_display(self):
+        # STATUS_CHOICES에서 현재 status에 해당하는 레이블 반환
+        return dict(self.STATUS_CHOICES).get(self.status, self.status)
+
+    @property
+    def business_type_display(self):
+        return dict(self.BUSINESS_TYPE_CHOICES).get(self.business_type, self.business_type)
+
+    @property
+    def vat_status_display(self):
+        return dict(self.VAT_STATUS_CHOICES).get(self.vat_status, self.vat_status)
+
+    @property
+    def loan_type_display(self):
+        loan_type_dict = {
+            '신규': '신규',
+            '추가': '추가',
+            '대환': '대환'
+        }
+        return loan_type_dict.get(self.loan_type, self.loan_type)
+
+    @property
+    def loan_rank(self):
+        prior_loans = self.prior_loans.all()
+        return '후순위' if prior_loans.exists() else '선순위'
+
+    @property
+    def loan_ltv(self):
+        prior_loans = self.prior_loans.all()
+        prior_loan_amount = sum(loan.amount for loan in prior_loans)
+        
+        loan_amount = self.loan_amount or 0
+        total_loan_amount = loan_amount + prior_loan_amount
+        
+        if self.price_amount:
+            return round((total_loan_amount / self.price_amount) * 100, 2)
+        return None
+    
+    @property
+    def is_tenant_display(self):
+        return 'O' if self.is_tenant else 'X'
+
+    @property
+    def is_fake_business_display(self):
+        return 'O' if self.is_fake_business else 'X'
+
+    @property
+    def is_soho_display(self):
+        return 'O' if self.is_soho else 'X'
+
+    @property
+    def need_proof_of_use_display(self):
+        return 'O' if self.need_proof_of_use else 'X'
+
+    @property
+    def is_separate_household_display(self):
+        return 'O' if self.is_separate_household else 'X'
+
+    @property
+    def prior_loan_details(self):
+        prior_loans = self.prior_loans.all()
+        return ', '.join([f"{loan.financial_company} {loan.amount}만원" for loan in prior_loans]) if prior_loans else None
+
+    @property
+    def consulting_log_summary(self):
+        consulting_logs = self.consulting_logs.all()
+        return ', '.join([log.content for log in consulting_logs]) if consulting_logs else None
 
     def _calculate_age(self, birth_date):
         """생년월일로 만 나이 계산"""
@@ -184,6 +268,8 @@ class LoanCase(models.Model):
             'id': self.id,
             'status': self.status,
             'referrer': self.referrer,
+            'introducer': self.introducer,
+            'status_display': self.status_display,
             'manager': self.manager.get_full_name() if self.manager else None,
             'created_at': self.created_at,
             'updated_at': self.updated_at,
@@ -197,6 +283,9 @@ class LoanCase(models.Model):
             'price_type': self.price_type,
             'price_amount': self.price_amount,
             'business_type': self.business_type,
+            'business_number': self.business_number,
+            'business_category': self.business_category,
+            'business_item': self.business_item,
             'monthly_sales': self.monthly_sales,
             'vat_status': self.vat_status,
             'other_income': self.other_income,
@@ -218,6 +307,23 @@ class LoanCase(models.Model):
             'is_soho': self.is_soho,
             'need_proof_of_use': self.need_proof_of_use,
             'is_separate_household': self.is_separate_household,
+            'is_tenant': self.is_tenant,
+            # 추가 필드
+            'is_lower_than_2nd': self.is_lower_than_2nd,
+            'is_commercial_residential': self.is_commercial_residential,
+            'is_above_4th_rank': self.is_above_4th_rank,
+            'has_registration_issue': self.has_registration_issue,
+            'is_trading_price_low': self.is_trading_price_low,
+            'is_fake_business': self.is_fake_business,
+            'is_fake_business_display': self.is_fake_business_display,
+            'is_soho': self.is_soho,
+            'is_soho_display': self.is_soho_display,
+            'need_proof_of_use': self.need_proof_of_use,
+            'need_proof_of_use_display': self.need_proof_of_use_display,
+            'is_separate_household': self.is_separate_household,
+            'is_separate_household_display': self.is_separate_household_display,
+            'is_tenant': self.is_tenant,
+            'is_tenant_display': self.is_tenant_display,
         }
     
     
@@ -395,21 +501,27 @@ class PriorLoan(models.Model):
     
 
 class Event(models.Model):
+    EVENT_TYPES = [
+        ('scheduled', '접수'),
+        ('authorizing', '자서'),
+        ('journalizing', '기표'),
+    ]
     title = models.CharField(max_length=255)
     description = models.TextField(null=True, blank=True)
-    authorizing_date = models.DateField(null=True, blank=True)
-    journalizing_date = models.DateField(null=True, blank=True)
-    scheduled_date = models.DateField(null=True, blank=True)
+    event_type = models.CharField(max_length=20, choices=EVENT_TYPES, default='scheduled')  # default 추가
+    date = models.DateField(null=True, blank=True)  # null=True, blank=True 추가
     loan_case = models.ForeignKey(LoanCase, related_name='events', on_delete=models.CASCADE)
 
     def save(self, *args, **kwargs):
-        if not self.authorizing_date:
-            self.authorizing_date = self.loan_case.authorizing_date
-        if not self.journalizing_date:
-            self.journalizing_date = self.loan_case.journalizing_date
-        if not self.scheduled_date:
-            self.scheduled_date = self.loan_case.scheduled_date
+        # date가 없는 경우에만 기본값 설정
+        if not self.date:
+            if self.event_type == 'authorizing' and self.loan_case.authorizing_date:
+                self.date = self.loan_case.authorizing_date
+            elif self.event_type == 'journalizing' and self.loan_case.journalizing_date:
+                self.date = self.loan_case.journalizing_date
+            elif self.event_type == 'scheduled' and self.loan_case.scheduled_date:
+                self.date = self.loan_case.scheduled_date
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return self.title
+        return f"{self.get_event_type_display()} - {self.title}"

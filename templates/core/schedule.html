@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.8/index.global.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@fullcalendar/web-component@6.1.8/index.global.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@fullcalendar/daygrid@6.1.8/index.global.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@fullcalendar/list@6.1.8/index.global.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container max-w-7xl mx-auto px-4 py-6">
+    <!-- 상단 필터 및 컨트롤 -->
+    <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+        <div class="flex justify-between items-center flex-wrap gap-4">
+            <div class="flex items-center gap-4">
+                <h1 class="text-2xl font-bold text-gray-900">일정 관리</h1>
+                <div class="flex gap-2">
+                    <button class="filter-btn active px-3 py-1.5 text-sm rounded" data-type="all">전체</button>
+                    <button class="filter-btn px-3 py-1.5 text-sm rounded" data-type="scheduled">접수</button>
+                    <button class="filter-btn px-3 py-1.5 text-sm rounded" data-type="authorizing">자서</button>
+                    <button class="filter-btn px-3 py-1.5 text-sm rounded" data-type="journalizing">기표</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 캘린더와 이벤트 목록 컨테이너 -->
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <!-- 캘린더 (3/4) -->
+        <div class="lg:col-span-3 bg-white rounded-lg shadow-sm p-6">
+            <div id="calendar"></div>
+        </div>
+
+        <!-- 이벤트 목록 (1/4) -->
+        <div class="bg-white rounded-lg shadow-sm p-6">
+            <h2 class="text-lg font-semibold mb-4">예정된 일정</h2>
+            <div id="upcomingEvents" class="space-y-4">
+                <!-- 동적으로 채워질 예정된 일정 목록 -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 이벤트 상세 모달 -->
+<div id="eventModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg w-full max-w-lg mx-4">
+        <div class="p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold" id="eventModalTitle">일정 상세</h3>
+                <button class="text-gray-400 hover:text-gray-600" onclick="closeEventModal()">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <div id="eventModalContent">
+                <!-- 동적으로 채워질 이벤트 상세 내용 -->
+            </div>
+            <div class="mt-6 flex justify-end gap-3">
+                <button class="px-4 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
+                    onclick="closeEventModal()">
+                    닫기
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{% static 'js/schedule.js' %}"></script>
+{% endblock %}

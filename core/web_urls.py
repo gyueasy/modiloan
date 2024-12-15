@@ -47,6 +47,24 @@ urlpatterns = [
             template_name='core/case_detail/_communication.html')),
         name='case_communication'),
 
+    # 스케쥴
+    path('schedule/',
+        (TemplateView.as_view(
+            template_name='core/schedule.html')),
+        name='schedule'),
+        
+    # 상태별페이지
+    path('status/',
+        (TemplateView.as_view(
+            template_name='core/customer_status.html')),
+        name='customer_status'),
+
+    # 상태별페이지
+    path('case_csv/',
+        (TemplateView.as_view(
+            template_name='core/case_csv_management.html')),
+        name='case_csv_management'),
+        
     # 프로필
     path('profile/',
         (TemplateView.as_view(
