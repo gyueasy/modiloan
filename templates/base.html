@@ -36,10 +36,49 @@
                 return null;
             },
 
+            async refreshToken() {
+                const refreshToken = localStorage.getItem('refreshToken');
+                if (!refreshToken) {
+                    console.log('Refresh 토큰이 없음');
+                    return false;
+                }
+
+                try {
+                    console.log('토큰 갱신 시도');
+                    const response = await fetch('/api/token/refresh/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            refresh: refreshToken
+                        })
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        localStorage.setItem('token', data.access);
+                        // refresh 토큰도 새로 발급된 경우에만 저장
+                        if (data.refresh) {
+                            localStorage.setItem('refreshToken', data.refresh);
+                        }
+                        console.log('토큰 갱신 성공');
+                        return true;
+                    }
+                    console.log('토큰 갱신 실패');
+                    return false;
+                } catch (error) {
+                    console.error('Token refresh failed:', error);
+                    return false;
+                }
+            },
+
             async fetchWithAuth(url, options = {}) {
-                const token = this.getToken();
-                if (!token) return null;
-                
+                let token = this.getToken();
+                if (!token) {
+                    console.log('토큰이 없음, 로그인 필요');
+                    return null;
+                }
 
                 try {
                     this.showLoading();
@@ -52,13 +91,39 @@
                         }
                     });
 
+                    // 401 에러 시 토큰 갱신 시도
                     if (response.status === 401) {
-                        localStorage.removeItem('token');
-                        window.location.href = '/web/login/';
+                        console.log('401 에러 발생, 토큰 갱신 시도');
+                        const refreshSuccess = await this.refreshToken();
+                        if (refreshSuccess) {
+                            // 새 토큰으로 원래 요청 재시도
+                            token = this.getToken();
+                            console.log('새 토큰으로 요청 재시도');
+                            const retryResponse = await fetch(url, {
+                                ...options,
+                                headers: {
+                                    'Authorization': `Bearer ${token}`,
+                                    'Content-Type': 'application/json',
+                                    ...options.headers
+                                }
+                            });
+
+                            if (retryResponse.ok) {
+                                if (retryResponse.status === 204) {
+                                    return null;
+                                }
+                                const text = await retryResponse.text();
+                                return text ? JSON.parse(text) : null;
+                            }
+                        }
+
+                        // 토큰 갱신 실패 시 로그아웃
+                        console.log('토큰 갱신 실패, 로그아웃 처리');
+                        this.logout();
                         return null;
                     }
 
-                    // 204 No Content 응답 처리
+                    // 정상 응답 처리
                     if (response.status === 204) {
                         return null;
                     }
@@ -78,21 +143,27 @@
                 }
             },
 
+            logout() {
+                localStorage.removeItem('token');
+                localStorage.removeItem('refreshToken');
+                window.location.href = '/web/login/';
+            },
+
             showToast(title, message, type = 'info') {
                 const toast = document.createElement('div');
                 toast.className = `toast ${type} mb-2`;
                 toast.innerHTML = `
-                    <div class="rounded-lg p-4 flex items-center gap-2 ${type === 'error' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'
+            <div class="rounded-lg p-4 flex items-center gap-2 ${type === 'error' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'
                     }">
-                        <span class="material-icons text-sm">
-                            ${type === 'error' ? 'error' : 'check_circle'}
-                        </span>
-                        <div>
-                            <p class="font-semibold">${title}</p>
-                            <p class="text-sm">${message}</p>
-                        </div>
-                    </div>
-                `;
+                <span class="material-icons text-sm">
+                    ${type === 'error' ? 'error' : 'check_circle'}
+                </span>
+                <div>
+                    <p class="font-semibold">${title}</p>
+                    <p class="text-sm">${message}</p>
+                </div>
+            </div>
+        `;
 
                 const container = document.getElementById('toastContainer');
                 if (container) {

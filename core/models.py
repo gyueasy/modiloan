@@ -291,6 +291,7 @@ class LoanCase(models.Model):
             'other_income': self.other_income,
             'residents': self.residents,
             'loan_amount': self.loan_amount,
+            'loan_type': self.loan_type,
             'interest_rate': float(self.interest_rate) if self.interest_rate else None,
             'is_urgent': self.is_urgent,
             'reception_date': self.reception_date,

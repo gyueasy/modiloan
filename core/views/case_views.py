@@ -36,7 +36,8 @@ def case_detail_view(request, case_id):
             'price_type_choices': dict(LoanCase.PRICE_TYPE_CHOICES),
             'scheduled_statuses': ['자서예정', '기표예정'],
             'security_providers': [provider.to_dict() for provider in loan_case.security_providers.all()],
-            'prior_loans': [loan.to_dict() for loan in loan_case.prior_loans.all()]
+            'prior_loans': [loan.to_dict() for loan in loan_case.prior_loans.all()],
+            'loan_type_choices': dict(LoanCase.LOAN_TYPE_CHOICES)
         }
 
         return Response(context)
@@ -66,7 +67,8 @@ def case_update_view(request, case_id):
             'price_type_choices': dict(LoanCase.PRICE_TYPE_CHOICES),
             'scheduled_statuses': ['자서예정', '기표예정'],
             'security_providers': [provider.to_dict() for provider in updated_case.security_providers.all()],
-            'prior_loans': [loan.to_dict() for loan in updated_case.prior_loans.all()]
+            'prior_loans': [loan.to_dict() for loan in updated_case.prior_loans.all()],
+            'loan_type_choices': dict(LoanCase.LOAN_TYPE_CHOICES) 
         })
     except ValidationError as e:
         return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
