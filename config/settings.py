@@ -203,35 +203,42 @@ AUTH_USER_MODEL = 'accounts.User'
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'style': '{',
+        }
+    },
     'handlers': {
-        'console': {
-            'level': 'INFO',  # 'DEBUG'를 'INFO'로 변경하여 기본적으로 정보 이상의 로그만 출력
-            'class': 'logging.StreamHandler',
+        'file': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': 'debug.log',
+            'formatter': 'verbose'
         },
+        'console': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose'
+        }
     },
     'loggers': {
         'django': {
-            'handlers': ['console'],
-            'level': 'INFO',  # 'DEBUG' 대신 'INFO'로 변경하여 불필요한 디버그 정보가 안 나오게 함
+            'handlers': ['file', 'console'],
+            'level': 'INFO',
             'propagate': True,
         },
-        # 라이브러리별 로깅 설정 추가
-        'cryptography': {
-            'handlers': ['console'],
-            'level': 'WARNING',  # cryptography 라이브러리의 로깅 수준을 'WARNING'으로 변경
-            'propagate': False,
+        'accounts': {  # 앱 이름
+            'handlers': ['file', 'console'],
+            'level': 'DEBUG',
+            'propagate': True,
         },
-        'jwt': {
-            'handlers': ['console'],
-            'level': 'WARNING',  # jwt 라이브러리의 로깅 수준을 'WARNING'으로 변경
-            'propagate': False,
-        },
-        'rest_framework_simplejwt': {
-            'handlers': ['console'],
-            'level': 'WARNING',  # rest_framework_simplejwt의 로깅 수준을 'WARNING'으로 변경
-            'propagate': False,
-        },
-    },
+        'core': {  # 앱 이름
+            'handlers': ['file', 'console'],
+            'level': 'DEBUG',
+            'propagate': True,
+        }
+    }
 }
 
 

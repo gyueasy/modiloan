@@ -1,5 +1,8 @@
 # permissions.py
 from rest_framework.permissions import BasePermission
+import logging
+
+logger = logging.getLogger(__name__)
 
 class IsBranchManager(BasePermission):
     def has_permission(self, request, view):
@@ -30,13 +33,20 @@ class CanManageCase(BasePermission):
             return obj.manager.team == user.team
         return obj.manager == user
 
-class CanManageEvent(BasePermission):
+class CanManageCase(BasePermission):
     def has_permission(self, request, view):
-        # 로그인하지 않은 사용자 체크 추가
+        logger.info("=== CanManageCase 권한 체크 ===")
+        logger.info(f"User: {request.user}")
+        logger.info(f"Role: {getattr(request.user, 'role', None)}")
+        
         if not request.user or not request.user.is_authenticated:
+            logger.info("인증되지 않은 사용자")
             return False
-        return request.user.role in ['admin', 'branch_manager', 'team_leader']
-
+        
+        has_permission = request.user.role in ['admin', 'branch_manager', 'team_leader']
+        logger.info(f"권한 체크 결과: {has_permission}")
+        return has_permission
+    
     def has_object_permission(self, request, view, obj):
         user = request.user
         if user.role == 'admin':
