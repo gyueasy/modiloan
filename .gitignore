@@ -55,11 +55,6 @@ Desktop.ini
 venv/
 .env
 
-# Static files
-staticfiles/
-static/admin/
-static/debug_toolbar/
-
 # Media files
 media/
 
@@ -71,3 +66,7 @@ media/
 *.pot
 *.pyc
 local_settings.py
+
+# Docker
+.dockerignore
+Dockerfile
