@@ -131,28 +131,25 @@ const Dashboard = {
         this.updateRecentCases(data.recent_cases);
     },
 
+    // 최근 케이스 업데이트 메소드 추가
     updateRecentCases(cases) {
         const container = document.querySelector('.recent-cases-container');
         if (!container || !cases) return;
 
-        // 24시간 이내의 케이스만 필터링
-        const last24Hours = new Date(Date.now() - 24 * 60 * 60 * 1000);
-        const recentCases = cases.filter(case_ => {
-            const caseDate = new Date(case_.created_at);
-            return caseDate > last24Hours;
-        });
-
-        container.innerHTML = recentCases.length ? recentCases.map(case_ => `
-            <a href="/web/cases/${case_.id}/" class="block bg-gray-50 rounded p-3 hover:bg-gray-100 transition">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="font-medium text-gray-800">${case_.borrower_name}</p>
-                        <p class="text-sm text-gray-600">${case_.status}</p>
-                    </div>
-                    <span class="text-sm text-gray-500">${new Date(case_.created_at).toLocaleDateString()}</span>
+        container.innerHTML = cases.length ? cases.map(case_ => `
+        <a href="/web/cases/${case_.id}/" class="block bg-gray-50 rounded p-3 hover:bg-gray-100 transition">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="font-medium text-gray-800">${case_.borrower_name}</p>
+                    <p class="text-sm text-gray-600">
+                        ${case_.status_display || case_.status}
+                        ${case_.loan_amount ? ` - ${case_.loan_amount.toLocaleString()}만원` : ''}
+                    </p>
                 </div>
-            </a>
-        `).join('') : '<p class="text-gray-500 text-center">최근 배정된 케이스가 없습니다.</p>';
+                <span class="text-sm text-gray-500">${new Date(case_.created_at).toLocaleDateString()}</span>
+            </div>
+        </a>
+    `).join('') : '<p class="text-gray-500 text-center">최근 등록된 케이스가 없습니다.</p>';
     },
 
     startAutoRefresh() {
