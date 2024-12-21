@@ -201,6 +201,21 @@ def profile_edit_view(request):
         'department': user.department
     })
 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def test_auth_view(request):
+    print("==== 인증 디버깅 ====")
+    print(f"Authorization: {request.headers.get('Authorization')}")
+    print(f"User: {request.user}")
+    print(f"Authenticated: {request.user.is_authenticated}")
+    print(f"Headers: {request.headers}")
+    
+    return Response({
+        'user_id': request.user.id,
+        'username': request.user.username,
+        'authenticated': request.user.is_authenticated
+    })
+
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
