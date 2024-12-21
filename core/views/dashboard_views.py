@@ -21,11 +21,14 @@ def format_error_response(message: str) -> dict:
 @permission_classes([CanManageCase])
 def dashboard_view(request):
     try:
-        # dashboard_data에서 calendar_events를 포함하지 않도록 수정
-        dashboard_data = DashboardService.get_dashboard_data(request.user)
+        print("==== 권한 디버깅 ====")
+        print(f"User: {request.user}")
+        print(f"Role: {getattr(request.user, 'role', None)}")
+        print(f"Is Staff: {request.user.is_staff}")
         
-        # calendar_events를 삭제하거나 추가하지 않음
+        dashboard_data = DashboardService.get_dashboard_data(request.user)
         return Response(dashboard_data, status=status.HTTP_200_OK)
     except Exception as e:
         error_message = f"Failed to fetch dashboard data: {str(e)}"
+        logger.error(f"Dashboard Error - User: {request.user}, Role: {getattr(request.user, 'role', None)}, Error: {str(e)}")
         return Response(format_error_response(error_message), status=status.HTTP_500_INTERNAL_SERVER_ERROR)
