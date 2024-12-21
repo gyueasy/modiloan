@@ -22,12 +22,13 @@ def format_error_response(message: str) -> dict:
 def dashboard_view(request):
     try:
         # 로깅을 logger를 통해 수행
-        logger.info("=== 권한 디버깅 시작 ===")
-        logger.info(f"User ID: {request.user.id}")
-        logger.info(f"Username: {request.user.username}")
-        logger.info(f"Role: {getattr(request.user, 'role', None)}")
-        logger.info(f"Is Staff: {request.user.is_staff}")
-        logger.info(f"Is Authenticated: {request.user.is_authenticated}")
+        logger.warning(f"=== Request Debug ===")
+        logger.warning(f"Auth Header: {request.headers.get('Authorization')}")
+        logger.warning(f"Content Type: {request.headers.get('Content-Type')}")
+        logger.warning(f"User: {request.user}")
+        logger.warning(f"User ID: {request.user.id}")
+        logger.warning(f"User Role: {getattr(request.user, 'role', 'No Role')}")
+        logger.warning(f"Is Authenticated: {request.user.is_authenticated}")
         
         dashboard_data = DashboardService.get_dashboard_data(request.user)
         return Response(dashboard_data, status=status.HTTP_200_OK)
