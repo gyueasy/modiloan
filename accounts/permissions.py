@@ -18,7 +18,7 @@ class CanManageCase(BasePermission):
         # 로그인하지 않은 사용자 체크 추가
         if not request.user or not request.user.is_authenticated:
             return False
-        return request.user.role in ['admin', 'branch_manager', 'team_leader']
+        return request.user.role in ['admin', 'branch_manager', 'team_leader', 'staff']
 
     def has_object_permission(self, request, view, obj):
         user = request.user

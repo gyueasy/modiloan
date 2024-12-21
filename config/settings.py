@@ -32,6 +32,9 @@ DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
 ALLOWED_HOSTS = ['*']  # 개발 단계에서는 모든 호스트 허용
 # ALLOWED_HOSTS = [os.getenv('ALLOWED_HOSTS', '.up.railway.app')]
+CSRF_TRUSTED_ORIGINS = [
+    'https://modiloan-production.up.railway.app'
+]
 # CORS 관련 설정도 확인
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
