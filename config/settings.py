@@ -32,9 +32,7 @@ DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
 ALLOWED_HOSTS = ['*']  # 개발 단계에서는 모든 호스트 허용
 # ALLOWED_HOSTS = [os.getenv('ALLOWED_HOSTS', '.up.railway.app')]
-CSRF_TRUSTED_ORIGINS = [
-    'https://modiloan-production.up.railway.app'
-]
+
 # CORS 관련 설정도 확인
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
@@ -78,12 +76,12 @@ MIDDLEWARE = [
     'whitenoise.middleware.WhiteNoiseMiddleware',  # static 파일 처리
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    # 'django.middleware.csrf.CsrfViewMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
-
+CSRF_EXEMPT_PATHS = ['/api/']  # API 경로는 CSRF 면제
 ROOT_URLCONF = 'config.urls'
 
 TEMPLATES = [
