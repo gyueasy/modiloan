@@ -115,8 +115,16 @@ const Dashboard = {
                 monthlyStats.textContent = `${data.month_stats.count}건`;
 
                 const monthlyAmount = document.querySelector('[data-stat="monthly-amount"]');
-                if (monthlyAmount) {
-                    monthlyAmount.textContent = `${data.month_stats.amount.toLocaleString()}만원`;
+                if (monthlyAmount && data.month_stats.amount) {
+                    // 수수료 계산 (0.3%)
+                    const commission = Math.floor(data.month_stats.amount * 10000 * 0.003);
+
+                    monthlyAmount.innerHTML = `
+                    ${data.month_stats.amount.toLocaleString()}만원
+                    <span class="text-sm text-gray-500">
+                        (예상 수수료: ${commission.toLocaleString()}원)
+                    </span>
+                `;
                 }
             }
         }

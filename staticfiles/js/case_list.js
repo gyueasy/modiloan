@@ -32,9 +32,9 @@ class CaseListManager {
             checkboxes.forEach(checkbox => checkbox.checked = e.target.checked);
         });
 
-        // 테이블 행 클릭 이벤트 위임 추가
+        // 테이블 행 클릭 이벤트 위임
         document.getElementById('caseList').addEventListener('click', (event) => {
-            // 체크박스, 삭제 버튼, 상세보기 링크 클릭은 무시
+            // 체크박스나 버튼 클릭 무시
             if (
                 event.target.type === 'checkbox' || 
                 event.target.tagName === 'A' || 
@@ -48,12 +48,9 @@ class CaseListManager {
             }
             
             // 가장 가까운 행 찾기
-            const row = event.target.closest('tr');
-            if (row) {
-                const id = row.querySelector('.case-checkbox').dataset.id;
-                if (id) {
-                    window.location.href = `/web/cases/${id}/`;
-                }
+            const row = event.target.closest('.clickable-row');
+            if (row && row.dataset.href) {
+                window.location.href = row.dataset.href;
             }
         });
     }
@@ -135,7 +132,7 @@ class CaseListManager {
     renderCases(cases) {
         const tbody = document.getElementById('caseList');
         tbody.innerHTML = cases.map(case_ => `
-            <tr class="hover:bg-gray-50 cursor-pointer">
+            <tr class="clickable-row hover:bg-gray-50 cursor-pointer" data-href="/web/cases/${case_.id}/">
                 <td class="checkbox-cell px-4 py-4 whitespace-nowrap">
                     <input type="checkbox" 
                         class="case-checkbox rounded border-gray-300 text-blue-600 focus:ring-blue-500"
