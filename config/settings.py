@@ -76,10 +76,17 @@ MIDDLEWARE = [
     'whitenoise.middleware.WhiteNoiseMiddleware',  # static 파일 처리
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    # 'django.middleware.csrf.CsrfViewMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+]
+
+# Admin 사이트를 위한 CSRF 설정
+CSRF_COOKIE_SECURE = True
+CSRF_COOKIE_HTTPONLY = True
+CSRF_TRUSTED_ORIGINS = [
+    'https://modiloan-production.up.railway.app'
 ]
 
 ROOT_URLCONF = 'config.urls'
