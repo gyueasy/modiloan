@@ -255,6 +255,23 @@ class LoanCaseService(BaseService):
                 errors.append('금리는 숫자여야 합니다.')
 
         return errors
+    
+    @classmethod
+    def create_case(cls, data):
+        # 필수 필드 검증
+        if not data.get('borrower_name'):
+            raise ValidationError('차주명은 필수입니다.')
+        
+        # 데이터 정제
+        cleaned_data = {
+            key: value for key, value in data.items() 
+            if hasattr(LoanCase, key) and value is not None
+        }
+        
+        # 새로운 케이스 생성
+        new_case = LoanCase.objects.create(**cleaned_data)
+        
+        return new_case
 
     # @staticmethod
     # def _validate_status_change(current_status, new_status):

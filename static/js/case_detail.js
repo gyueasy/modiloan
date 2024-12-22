@@ -239,11 +239,32 @@ class CaseDetailManager {
                 this.deletePriorLoan(id);
             }
         });
-        // 이벤트 모달도 동일한 패턴으로 수정
+        // 긴급처리 버튼 이벤트 리스너 추가
+        const urgentToggle = document.getElementById('urgentToggle');
+        if (urgentToggle) {
+            console.log('긴급처리 버튼이 존재합니다:', urgentToggle);
+            urgentToggle.addEventListener('click', () => {
+                console.log('긴급처리 버튼이 클릭되었습니다!');
+                this.handleUrgentToggle();
+            });
+        } else {
+            console.log('긴급처리 버튼을 찾을 수 없습니다');
+        }
 
         // Status 변경 이벤트 리스너 추가
         if (this.statusSelect) {
             this.statusSelect.addEventListener('change', (e) => this.handleStatusChange(e));
+        }
+        // 상단 저장 버튼
+        const saveFormBtn = document.getElementById('saveFormBtn');
+        if (saveFormBtn) {
+            saveFormBtn.addEventListener('click', () => this.saveFormData());
+        }
+
+        // 하단 저장 버튼
+        const saveFormBtnBottom = document.getElementById('saveFormBtnBottom');
+        if (saveFormBtnBottom) {
+            saveFormBtnBottom.addEventListener('click', () => this.saveFormData());
         }
     }
     async loadInitialData() {
@@ -257,22 +278,31 @@ class CaseDetailManager {
             }
     
             const data = await window.authUtils.fetchWithAuth(this.endpoints.detail);
-            console.log('Initial fetch data:', data);  // 이제 data 선언 후에 사용
+            console.log('Initial fetch data:', data);
+    
+            // loan_case 데이터를 window.loanCaseApp에 저장
+            if (data.loan_case) {
+                window.loanCaseApp.loan_case = data.loan_case;
+            }
+    
             this.populateFormData(data);
-
-            console.log('After set borrowerName:', window.loanCaseApp); // 로그 추가
-
-            console.log('Fetching comments from:', this.endpoints.comments);
-            const commentsResponse = await window.authUtils.fetchWithAuth(this.endpoints.comments);
-            console.log('Comments API Response:', commentsResponse);
-
-            console.log('Fetching consulting logs from:', this.endpoints.consultingLogs);
-            const logsResponse = await window.authUtils.fetchWithAuth(this.endpoints.consultingLogs);
-            console.log('ConsultingLogs API Response:', logsResponse);
-
+            
             window.loanCaseApp.securityProviders = data.security_providers || [];
             window.loanCaseApp.priorLoans = data.prior_loans || [];
-
+    
+            // 댓글과 상담일지 데이터 로드
+            console.log('Fetching comments from:', this.endpoints.comments);
+            const commentsResponse = await window.authUtils.fetchWithAuth(this.endpoints.comments);
+            window.loanCaseApp.comments = commentsResponse || [];
+            console.log('Comments API Response:', commentsResponse);
+    
+            console.log('Fetching consulting logs from:', this.endpoints.consultingLogs);
+            const logsResponse = await window.authUtils.fetchWithAuth(this.endpoints.consultingLogs);
+            window.loanCaseApp.consultingLogs = logsResponse || [];
+            console.log('ConsultingLogs API Response:', logsResponse);
+    
+            console.log('Updated loanCaseApp:', window.loanCaseApp);
+    
         } catch (error) {
             console.error('Initial data load error:', error);
             window.authUtils.showToast('에러', '데이터를 불러오는데 실패했습니다.', 'error');
@@ -333,44 +363,43 @@ class CaseDetailManager {
 
     async handleUrgentToggle() {
         try {
+            console.log('긴급처리 토글 시작');
             const response = await window.authUtils.fetchWithAuth(this.endpoints.urgent, {
                 method: 'PATCH'
             });
 
-            this.urgentToggle.classList.toggle('bg-red-100');
-            this.urgentToggle.classList.toggle('text-red-700');
-            this.urgentToggle.classList.toggle('bg-gray-100');
-            this.urgentToggle.classList.toggle('text-gray-700');
+            console.log('긴급처리 응답:', response);
 
-            window.authUtils.showToast('성공', response.message, 'success');
+            if (response) {
+                const urgentToggle = document.getElementById('urgentToggle');
+                // 상태에 따라 클래스 토글
+                urgentToggle.classList.toggle('bg-red-100');
+                urgentToggle.classList.toggle('text-red-700');
+                urgentToggle.classList.toggle('bg-gray-100');
+                urgentToggle.classList.toggle('text-gray-700');
 
+                window.authUtils.showToast('성공', '긴급처리 상태가 변경되었습니다.', 'success');
+            }
         } catch (error) {
-            window.authUtils.showToast('에러', error.message, 'error');
+            console.error('긴급처리 토글 에러:', error);
+            window.authUtils.showToast('에러', '긴급처리 상태 변경에 실패했습니다.', 'error');
         }
     }
 
-    handleFormChange() {
-        console.group('Form Change Handler');
-        console.log('Form exists?', !!this.form);
-        console.log('Is initialized?', this.isInitialized);
-        console.log('this context:', this);
-
-        if (!this.form || !this.isInitialized) {
-            console.warn('Form not ready for changes');
-            console.groupEnd();
-            return;
+    handleFormChange(event) {
+        // 자동 저장이 필요한 필드들
+        const autoSaveFields = ['status', 'is_urgent'];
+        
+        // 변경된 필드가 자동 저장 대상인 경우에만 저장
+        if (event.target && autoSaveFields.includes(event.target.name)) {
+            if (window.loanCaseApp.saveTimer) {
+                clearTimeout(window.loanCaseApp.saveTimer);
+            }
+            
+            window.loanCaseApp.saveTimer = setTimeout(() => {
+                this.saveFormData();
+            }, 1000);
         }
-
-        if (window.loanCaseApp.saveTimer) {
-            console.log('Clearing existing save timer');
-            clearTimeout(window.loanCaseApp.saveTimer);
-        }
-
-        console.log('Setting new save timer');
-        window.loanCaseApp.saveTimer = setTimeout(() => {
-            this.saveFormData();
-        }, 1000);
-        console.groupEnd();
     }
 
     async saveFormData() {
@@ -378,34 +407,34 @@ class CaseDetailManager {
             console.error('Form not initialized');
             return;
         }
-    
+
         try {
             const cleanData = {};
             const formData = new FormData(this.form);
-    
+
             // 새로 추가된 필드들
             const newFields = [
-                'introducer', 
-                'loan_type', 
-                'business_number', 
-                'business_category', 
-                'business_item', 
+                'introducer',
+                'loan_type',
+                'business_number',
+                'business_category',
+                'business_item',
                 'is_tenant',
                 'referrer'  // referrer 추가
             ];
-    
+
             for (const [key, value] of formData.entries()) {
                 // 빈 값이 아니거나 새로 추가된 필드인 경우 포함
                 if (value !== '' || newFields.includes(key)) {
                     cleanData[key] = value;
                 }
             }
-    
+
             // 체크박스 필드 처리
             this.form.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
                 cleanData[checkbox.name] = checkbox.checked;
             });
-    
+
             // 대출 유형과 새로 추가된 필드들 명시적으로 처리
             newFields.forEach(field => {
                 const element = this.form.elements[field];
@@ -418,9 +447,9 @@ class CaseDetailManager {
                     }
                 }
             });
-    
+
             console.log('Saving form data:', cleanData);
-    
+
             const response = await window.authUtils.fetchWithAuth(
                 this.endpoints.update,
                 {
@@ -428,14 +457,14 @@ class CaseDetailManager {
                     body: JSON.stringify(cleanData)
                 }
             );
-    
+
             if (response && response.loan_case) {
                 this.populateFormData(response);
                 window.authUtils.showToast('성공', '데이터가 저장되었습니다.', 'success');
             } else {
                 throw new Error('저장된 데이터를 받지 못했습니다.');
             }
-    
+
         } catch (error) {
             console.error('Save error:', error);
             window.authUtils.showToast('에러', '데이터 저장 중 오류가 발생했습니다.', 'error');
@@ -444,35 +473,35 @@ class CaseDetailManager {
 
     populateFormData(data) {
         console.log('Received data:', data);
-        
+
         if (!data.loan_case) return;
-        
+
         const headerTitle = document.querySelector('h1');
         if (headerTitle) {
             headerTitle.textContent = data.loan_case.borrower_name ?
                 `${data.loan_case.borrower_name}님의 대출 건` : '신규 대출 건';
         }
-        
+
         if (this.statusSelect && data.status_choices) {
             this.statusSelect.innerHTML = '';
             Object.entries(data.status_choices).forEach(([value, label]) => {
                 const option = new Option(label, value);
                 this.statusSelect.add(option);
             });
-            
+
             if (data.loan_case.status) {
                 this.statusSelect.value = data.loan_case.status;
                 this.previousStatus = data.loan_case.status;
             }
         }
-        
+
         if (data.security_providers) {
             this.renderSecurityProviders(data.security_providers);
         }
         if (data.prior_loans) {
             this.renderPriorLoans(data.prior_loans);
         }
-        
+
         if (this.urgentToggle) {
             if (data.loan_case.is_urgent) {
                 this.urgentToggle.classList.add('bg-red-100', 'text-red-700');
@@ -482,23 +511,23 @@ class CaseDetailManager {
                 this.urgentToggle.classList.remove('bg-red-100', 'text-red-700');
             }
         }
-        
+
         const formElements = this.form.elements;
-        
+
         // 새로 추가된 필드들 포함
         const newFields = [
-            'introducer', 
-            'loan_type', 
-            'business_number', 
-            'business_category', 
-            'business_item', 
+            'introducer',
+            'loan_type',
+            'business_number',
+            'business_category',
+            'business_item',
             'is_tenant'
         ];
-        
+
         Object.entries(data.loan_case).forEach(([key, value]) => {
             const element = formElements[key];
             if (!element) return;
-            
+
             if (element.type === 'checkbox') {
                 element.checked = Boolean(value);
             } else if (element.type === 'select-one' && value === null) {
@@ -512,11 +541,11 @@ class CaseDetailManager {
                 }
             }
         });
-        
+
         this.populateSelectOptions('business_type', data.business_type_choices, data.loan_case.business_type);
         this.populateSelectOptions('vat_status', data.vat_status_choices, data.loan_case.vat_status);
         this.populateSelectOptions('price_type', data.price_type_choices, data.loan_case.price_type);
-        
+
         // 새로 추가된 대출 유형 셀렉트 옵션
         const loanTypeSelect = this.form.elements['loan_type'];
         if (loanTypeSelect && data.loan_case.loan_type) {
@@ -600,6 +629,8 @@ class CaseDetailManager {
         `;
     }
 }
+
+
 
 // DOM이 완전히 로드된 후 초기화
 document.addEventListener('DOMContentLoaded', () => {

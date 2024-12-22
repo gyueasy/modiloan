@@ -70,3 +70,4 @@ local_settings.py
 # Docker
 .dockerignore
 Dockerfile
+settings.py

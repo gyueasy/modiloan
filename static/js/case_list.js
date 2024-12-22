@@ -1,14 +1,15 @@
-// 상태값 정의 - 대시보드와 동일한 색상 시스템 사용
+console.log('★★★ case_list.js loaded ★★★');
+// 상태값 정의
 const STATUS_COLORS = {
-    '단순조회중': '#E3F2FD',
-    '신용조회중': '#90CAF9',
-    '서류수취중': '#64B5F6',
-    '심사중': '#42A5F5',
-    '승인': '#2196F3',
-    '자서예정': '#1E88E5',
-    '기표예정': '#1976D2',
-    '용도증빙': '#1565C0',
-    '완료': '#0D47A1'
+    '단순조회중': '#E3F2FD',  // 연한 파랑
+    '신용조회중': '#90CAF9',  // 밝은 파랑
+    '서류수취중': '#FFF8E1',  // 옅은 노랑
+    '심사중': '#FFD54F',     // 노랑
+    '승인': '#4CAF50',      // 초록
+    '자서예정': '#1E88E5',   // 진한 파랑
+    '기표예정': '#1976D2',   // 더 진한 파랑
+    '용도증빙': '#1565C0',   // 매우 진한 파랑
+    '완료': '#0D47A1'       // 가장 진한 파랑
 };
 
 class CaseListManager {
@@ -31,10 +32,31 @@ class CaseListManager {
             const checkboxes = document.querySelectorAll('.case-checkbox');
             checkboxes.forEach(checkbox => checkbox.checked = e.target.checked);
         });
+
+        // 테이블 행 클릭 이벤트 위임
+        document.getElementById('caseList').addEventListener('click', (event) => {
+            // 체크박스나 버튼 클릭 무시
+            if (
+                event.target.type === 'checkbox' || 
+                event.target.tagName === 'A' || 
+                event.target.tagName === 'BUTTON' ||
+                event.target.closest('a') ||
+                event.target.closest('button') ||
+                event.target.closest('.checkbox-cell') ||
+                event.target.closest('.action-cell')
+            ) {
+                return;
+            }
+            
+            // 가장 가까운 행 찾기
+            const row = event.target.closest('.clickable-row');
+            if (row && row.dataset.href) {
+                window.location.href = row.dataset.href;
+            }
+        });
     }
 
     getBusinessTypeLabel(type) {
-        // API에서 오는 business_type 값에 맞게 수정
         const businessTypes = {
             '일반(가)': '일반(가)',
             '일반(실)': '일반(실)',
@@ -65,7 +87,6 @@ class CaseListManager {
     }
 
     getContrastColor(rgb) {
-        // W3C 기준에 따른 밝기 계산
         const brightness = (rgb.r * 299 + rgb.g * 587 + rgb.b * 114) / 1000;
         return brightness > 128 ? '#000000' : '#FFFFFF';
     }
@@ -112,8 +133,8 @@ class CaseListManager {
     renderCases(cases) {
         const tbody = document.getElementById('caseList');
         tbody.innerHTML = cases.map(case_ => `
-            <tr class="hover:bg-gray-50">
-                <td class="px-4 py-4 whitespace-nowrap">
+            <tr class="clickable-row hover:bg-gray-50 cursor-pointer" data-href="/web/cases/${case_.id}/">
+                <td class="checkbox-cell px-4 py-4 whitespace-nowrap">
                     <input type="checkbox" 
                         class="case-checkbox rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                         data-id="${case_.id}">
@@ -138,7 +159,7 @@ class CaseListManager {
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">${case_.manager_name || '-'}</td>
                 <td class="px-6 py-4 whitespace-nowrap">${new Date(case_.created_at).toLocaleDateString()}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                <td class="action-cell px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <a href="/web/cases/${case_.id}/" class="text-blue-600 hover:text-blue-900">상세보기</a>
                     <button 
                         class="ml-2 text-red-600 hover:text-red-900 delete-btn"
@@ -151,85 +172,83 @@ class CaseListManager {
         `).join('');
     }
 
-// getQueryParams 메서드 추가
-getQueryParams() {
-    const formData = new FormData(document.getElementById('filterForm'));
-    const params = new URLSearchParams();
+    getQueryParams() {
+        const formData = new FormData(document.getElementById('filterForm'));
+        const params = new URLSearchParams();
 
-    for (let [key, value] of formData.entries()) {
-        if (value) params.append(key, value);
-    }
-
-    params.append('page', this.currentPage);
-    params.append('page_size', this.pageSize);
-
-    return params.toString();
-}
-
-// 페이지네이션 관련 메서드들도 추가
-renderPagination() {
-    const pagination = document.getElementById('pagination');
-    let html = '';
-
-    // 이전 페이지 버튼
-    html += `
-        <button 
-            class="px-3 py-2 rounded-md ${this.currentPage === 1 ? 'text-gray-400 cursor-not-allowed' : 'text-gray-700 hover:bg-gray-50'}"
-            ${this.currentPage === 1 ? 'disabled' : ''}
-            onclick="caseList.changePage(${this.currentPage - 1})"
-        >
-            이전
-        </button>
-    `;
-
-    // 페이지 번호
-    for (let i = 1; i <= this.totalPages; i++) {
-        if (
-            i === 1 ||
-            i === this.totalPages ||
-            (i >= this.currentPage - 2 && i <= this.currentPage + 2)
-        ) {
-            html += `
-                <button 
-                    class="px-3 py-2 rounded-md ${i === this.currentPage ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'}"
-                    onclick="caseList.changePage(${i})"
-                >
-                    ${i}
-                </button>
-            `;
-        } else if (
-            i === this.currentPage - 3 ||
-            i === this.currentPage + 3
-        ) {
-            html += '<span class="px-2">...</span>';
+        for (let [key, value] of formData.entries()) {
+            if (value) params.append(key, value);
         }
+
+        params.append('page', this.currentPage);
+        params.append('page_size', this.pageSize);
+
+        return params.toString();
     }
 
-    // 다음 페이지 버튼
-    html += `
-        <button 
-            class="px-3 py-2 rounded-md ${this.currentPage === this.totalPages ? 'text-gray-400 cursor-not-allowed' : 'text-gray-700 hover:bg-gray-50'}"
-            ${this.currentPage === this.totalPages ? 'disabled' : ''}
-            onclick="caseList.changePage(${this.currentPage + 1})"
-        >
-            다음
-        </button>
-    `;
+    renderPagination() {
+        const pagination = document.getElementById('pagination');
+        let html = '';
 
-    pagination.innerHTML = html;
-}
+        // 이전 페이지 버튼
+        html += `
+            <button 
+                class="px-3 py-2 rounded-md ${this.currentPage === 1 ? 'text-gray-400 cursor-not-allowed' : 'text-gray-700 hover:bg-gray-50'}"
+                ${this.currentPage === 1 ? 'disabled' : ''}
+                onclick="caseList.changePage(${this.currentPage - 1})"
+            >
+                이전
+            </button>
+        `;
 
-changePage(page) {
-    if (page < 1 || page > this.totalPages) return;
-    this.currentPage = page;
-    this.loadCases();
-}
+        // 페이지 번호
+        for (let i = 1; i <= this.totalPages; i++) {
+            if (
+                i === 1 ||
+                i === this.totalPages ||
+                (i >= this.currentPage - 2 && i <= this.currentPage + 2)
+            ) {
+                html += `
+                    <button 
+                        class="px-3 py-2 rounded-md ${i === this.currentPage ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'}"
+                        onclick="caseList.changePage(${i})"
+                    >
+                        ${i}
+                    </button>
+                `;
+            } else if (
+                i === this.currentPage - 3 ||
+                i === this.currentPage + 3
+            ) {
+                html += '<span class="px-2">...</span>';
+            }
+        }
 
-resetFilters() {
-    document.getElementById('filterForm').reset();
-    this.currentPage = 1;
-    this.loadCases();
-}
+        // 다음 페이지 버튼
+        html += `
+            <button 
+                class="px-3 py-2 rounded-md ${this.currentPage === this.totalPages ? 'text-gray-400 cursor-not-allowed' : 'text-gray-700 hover:bg-gray-50'}"
+                ${this.currentPage === this.totalPages ? 'disabled' : ''}
+                onclick="caseList.changePage(${this.currentPage + 1})"
+            >
+                다음
+            </button>
+        `;
+
+        pagination.innerHTML = html;
+    }
+
+    changePage(page) {
+        if (page < 1 || page > this.totalPages) return;
+        this.currentPage = page;
+        this.loadCases();
+    }
+
+    resetFilters() {
+        document.getElementById('filterForm').reset();
+        this.currentPage = 1;
+        this.loadCases();
+    }
 }
 
 // 전역 변수로 인스턴스 생성

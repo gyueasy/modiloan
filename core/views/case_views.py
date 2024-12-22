@@ -14,6 +14,25 @@ from django.http import Http404
 
 logger = logging.getLogger(__name__)
 
+@api_view(['POST'])
+@permission_classes([CanManageCase])
+def case_create_view(request):
+    try:
+        # 새로운 케이스 생성
+        new_case = LoanCaseService.create_case(request.data)
+        
+        return Response({
+            'id': new_case.id,
+            'message': '대출 건이 성공적으로 생성되었습니다.',
+            'loan_case': new_case.to_dict()
+        }, status=status.HTTP_201_CREATED)
+    
+    except ValidationError as e:
+        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        logger.error(f"Error creating case: {str(e)}", exc_info=True)
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 @api_view(['GET', 'PUT', 'PATCH']) 
 @permission_classes([CanManageCase])

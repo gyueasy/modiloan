@@ -1,3 +1,4 @@
+console.log('★★★ case_list.js loaded ★★★');
 // 상태값 정의
 const STATUS_COLORS = {
     '단순조회중': '#E3F2FD',  // 연한 파랑

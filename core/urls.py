@@ -3,7 +3,7 @@ from . import views
 from .views.dashboard_views import dashboard_view
 from core.views.event_views import EventListCreateAPIView, EventDetailAPIView, EventListView, CaseEventListView
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-from core.views import case_create_api_view, case_delete_view
+from core.views import case_create_view, case_delete_view
 app_name = 'core'
 
 urlpatterns = [
@@ -20,7 +20,7 @@ urlpatterns = [
     # LoanCase
     path('cases/', views.LoanCaseListView.as_view(), name='case_list'),
     path('cases/<int:case_id>/', views.case_detail_view, name='case_detail'),
-    path('cases/create/', case_create_api_view, name='case_create_api'),
+    path('cases/create/', views.case_create_view, name='case_create_api'),
     path('cases/<int:case_id>/update/', views.case_update_view, name='case_update'),
     path('cases/<int:case_id>/status/', views.case_status_view, name='case_status'),
     path('cases/<int:case_id>/schedule/', views.case_schedule_view, name='case_schedule'),

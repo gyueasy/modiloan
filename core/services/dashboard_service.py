@@ -9,6 +9,7 @@ from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
+
 class DashboardService:
     @staticmethod
     def get_dashboard_data(user) -> Dict:
@@ -28,15 +29,19 @@ class DashboardService:
     @staticmethod
     def _get_today_stats(today: date, yesterday: date) -> Dict:
         # 상태 그룹 정의
-        ONGOING_STATUSES = ['단순조회중', '신용조회중', '서류수취중', '심사중', '승인', '자서예정', '기표예정']
+        ONGOING_STATUSES = ['단순조회중', '신용조회중',
+                            '서류수취중', '심사중', '승인', '자서예정', '기표예정']
         COMPLETED_STATUSES = ['용도증빙', '완료']
 
         # 신규 케이스
-        new_cases_today = LoanCase.objects.filter(created_at__date=today).count()
-        new_cases_yesterday = LoanCase.objects.filter(created_at__date=yesterday).count()
+        new_cases_today = LoanCase.objects.filter(
+            created_at__date=today).count()
+        new_cases_yesterday = LoanCase.objects.filter(
+            created_at__date=yesterday).count()
 
         # 진행중 케이스 (정의된 상태들만)
-        ongoing_cases_today = LoanCase.objects.filter(status__in=ONGOING_STATUSES).count()
+        ongoing_cases_today = LoanCase.objects.filter(
+            status__in=ONGOING_STATUSES).count()
         ongoing_cases_yesterday = LoanCase.objects.filter(
             created_at__date__lte=yesterday,
             status__in=ONGOING_STATUSES
@@ -100,9 +105,17 @@ class DashboardService:
 
         return [case.to_dict() for case in cases]
 
+
     @staticmethod
     def _get_recent_cases(user) -> List[Dict]:
-        cases = LoanCase.objects.filter(manager=user).select_related('manager').order_by('-created_at')[:5]
+        # 24시간 전 시간 계산
+        one_day_ago = timezone.now() - timedelta(hours=24)
+
+        cases = LoanCase.objects.filter(
+            manager=user,
+            created_at__gte=one_day_ago
+        ).select_related('manager').order_by('-created_at')
+
         return [case.to_dict() for case in cases]
 
     @staticmethod
@@ -141,7 +154,7 @@ class DashboardService:
         # 날짜 파라미터가 있을 경우, 이를 datetime 객체로 변환
         start_date = datetime.fromisoformat(start_str) if start_str else None
         end_date = datetime.fromisoformat(end_str) if end_str else None
-        
+
         events = []
 
         for event in Event.objects.all():

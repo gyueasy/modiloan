@@ -25,18 +25,27 @@
 </script>
 {% endblock %}
 {% block content %}
-
+{% include 'core/case_detail/_wizard_menu.html' %}
 <div class="container max-w-7xl mx-auto px-4 py-6">
     <!-- 상단 헤더 영역 -->
     <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
         <div class="flex justify-between items-center">
-            <h1 class="text-2xl font-bold text-gray-900">
-                {% if loan_case.id %}
-                    {{ loan_case.borrower_name }}님의 대출 건
-                {% else %}
-                    신규 대출 건
-                {% endif %}
-            </h1>
+            <div class="flex items-center gap-4">
+                <h1 class="text-2xl font-bold text-gray-900">
+                    {% if loan_case.id %}
+                        {{ loan_case.borrower_name }}님의 대출 건
+                    {% else %}
+                        신규 대출 건
+                    {% endif %}
+                </h1>
+                <!-- 저장 버튼 추가 -->
+                <button id="saveFormBtn" type="button"
+                    class="inline-flex items-center gap-2 px-3 py-1.5 text-sm bg-blue-500 hover:bg-blue-600 text-white rounded">
+                    <span class="material-icons text-sm">save</span>
+                    저장
+                </button>
+            </div>
+            
             <div class="flex items-center gap-4">
                 <!-- 긴급처리 토글 -->
                 <button id="urgentToggle"
@@ -46,8 +55,8 @@
                     {% else %}
                         bg-gray-100 text-gray-700 hover:bg-gray-200
                     {% endif %}">
-                    <span class="material-icons text-sm">priority_high</span>
-                    긴급처리
+                    <span class="material-icons text-sm">lightbulb</span>
+                    확인필요
                 </button>
                 <!-- 상태 변경 드롭다운 -->
                 <select id="statusSelect" 
@@ -104,6 +113,7 @@
                         <!-- 선순위대출 목록 테이블 -->
                     </div>
                 </div>
+                
             </form>
 
             <!-- 이벤트 섹션 -->
@@ -187,4 +197,5 @@
 <script type="module" src="{% static 'js/consulting_log.js' %}"></script>
 <script type="module" src="{% static 'js/comment.js' %}"></script>
 <script type="module" src="{% static 'js/event.js' %}"></script>
+<script type="module" src="{% static 'js/feed_wizard_modal.js' %}"></script>
 {% endblock %}

@@ -42,30 +42,30 @@ class LoanCaseListView(ListAPIView):
             return LoanCase.objects.filter(manager__team=user.team)
         return LoanCase.objects.filter(manager=user)
 
-@api_view(['POST'])
-@permission_classes([CanManageCase])
-def case_create_api_view(request):
-    try:
-        print("Received data:", request.data)  # 받은 데이터 출력
-        serializer = LoanCaseSerializer(data=request.data)
-        if serializer.is_valid():
-            # 현재 로그인한 유저를 manager로 지정
-            loan_case = serializer.save(manager=request.user)
-            return Response(
-                loan_case.to_dict(),
-                status=status.HTTP_201_CREATED
-            )
-        print("Serializer errors:", serializer.errors)  # 에러 출력
-        return Response(
-            serializer.errors,
-            status=status.HTTP_400_BAD_REQUEST
-        )
-    except Exception as e:
-        logger.error(f"Error creating case: {str(e)}", exc_info=True)
-        return Response(
-            {'error': '케이스 생성 중 오류가 발생했습니다.'},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
+# @api_view(['POST'])
+# @permission_classes([CanManageCase])
+# def case_create_api_view(request):
+#     try:
+#         print("Received data:", request.data)  # 받은 데이터 출력
+#         serializer = LoanCaseSerializer(data=request.data)
+#         if serializer.is_valid():
+#             # 현재 로그인한 유저를 manager로 지정
+#             loan_case = serializer.save(manager=request.user)
+#             return Response(
+#                 loan_case.to_dict(),
+#                 status=status.HTTP_201_CREATED
+#             )
+#         print("Serializer errors:", serializer.errors)  # 에러 출력
+#         return Response(
+#             serializer.errors,
+#             status=status.HTTP_400_BAD_REQUEST
+#         )
+#     except Exception as e:
+#         logger.error(f"Error creating case: {str(e)}", exc_info=True)
+#         return Response(
+#             {'error': '케이스 생성 중 오류가 발생했습니다.'},
+#             status=status.HTTP_500_INTERNAL_SERVER_ERROR
+#         )
 
 def case_list_view(request):
     context = {

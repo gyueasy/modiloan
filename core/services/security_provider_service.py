@@ -16,6 +16,11 @@ class SecurityProviderService(BaseService):
         ).filter(loan_case_id=loan_case_id)
 
     @staticmethod
+    def get_provider(provider_id):
+        """특정 담보제공자 조회"""
+        return get_object_or_404(SecurityProvider, id=provider_id)
+
+    @staticmethod
     @transaction.atomic
     def create_provider(loan_case_id, provider_data):
         """담보제공자 생성"""

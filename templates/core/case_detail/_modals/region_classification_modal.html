@@ -1,0 +1,195 @@
+{% load static %}
+<!-- core/case_detail/_modals/region_classification_modal.html -->
+
+<!-- 모달 -->
+<div id="regionClassificationModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-xl shadow-2xl w-[1200px] max-h-[90vh] flex flex-col">
+        <!-- 모달 헤더 -->
+        <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+            <h2 class="text-xl font-semibold text-gray-800">LTV 및 금리 조견표</h2>
+            <button id="closeRegionClassificationModal" type="button" class="text-gray-500 hover:text-gray-800 transition-colors">
+                <span class="material-icons">close</span>
+            </button>
+        </div>
+
+        <!-- 모달 본문 -->
+        <div class="p-6 overflow-auto">
+            <!-- 1. 지역별 LTV 테이블 -->
+            <div class="mb-6">
+                <h3 class="text-lg font-semibold mb-4">대출 한도 (LTV)</h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full border-collapse" id="regionLtvTable"></table>
+                </div>
+            </div>
+
+            <!-- 2. LTV별 금리 테이블 -->
+            <div class="mb-6">
+                <h3 class="text-lg font-semibold mb-4 flex justify-between items-center">
+                    <span>대출 금리</span>
+                    <span class="text-sm font-normal">기준금리 3.6% (24/6/17 3.75%)</span>
+                </h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full border-collapse" id="ltvRateTable"></table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    let ltvData, rateData;
+
+    async function loadData() {
+        try {
+            const responses = await Promise.all([
+                fetch("{% static 'json/ltv_data.json' %}"),
+                fetch("{% static 'json/interest_rate_data.json' %}")
+            ]);
+            
+            [ltvData, rateData] = await Promise.all(
+                responses.map(response => response.json())
+            );
+            
+            return true;
+        } catch (error) {
+            console.error('[조견표] 데이터 로드 중 오류:', error);
+            return false;
+        }
+    }
+
+    function renderLtvTable() {
+        const table = document.getElementById('regionLtvTable');
+        const creditScores = Object.keys(ltvData);
+        
+        let html = `
+            <thead>
+                <tr class="bg-green-50">
+                    <th class="p-2 border text-left">신용점수</th>
+                    <th class="p-2 border text-center" colspan="3">서울</th>
+                    <th class="p-2 border text-center" colspan="3">경기</th>
+                    <th class="p-2 border text-center" colspan="3">인천 및 광역시</th>
+                    <th class="p-2 border text-center">세종</th>
+                </tr>
+                <tr class="bg-green-50">
+                    <th class="p-2 border"></th>
+                    ${Array(3).fill('').map(() => 
+                        '<th class="p-2 border">1급지</th><th class="p-2 border">2급지</th><th class="p-2 border">3급지</th>'
+                    ).join('')}
+                    <th class="p-2 border">공통</th>
+                </tr>
+            </thead>
+            <tbody>
+        `;
+
+        creditScores.forEach(score => {
+            const rowData = ltvData[score];
+            html += `
+                <tr>
+                    <td class="p-2 border font-medium">${score}</td>
+                    ${['서울', '경기', '인천및광역시'].map(region => 
+                        [1, 2, 3].map(grade => {
+                            const key = `${region}_${grade}급지`;
+                            const value = rowData[key] || '';
+                            const [baseRate, exceptionRate] = value.split(' ');
+                            return `
+                                <td class="p-2 border text-center">
+                                    <div class="font-bold text-green-600 text-lg">${baseRate}</div>
+                                    ${exceptionRate ? `<div class="text-red-500 text-xs">${exceptionRate}</div>` : ''}
+                                </td>
+                            `;
+                        }).join('')
+                    ).join('')}
+                    <td class="p-2 border text-center">
+                        <div class="font-bold text-green-600 text-lg">${rowData['세종_공통'].split(' ')[0]}</div>
+                        ${rowData['세종_공통'].includes(' ') ? 
+                            `<div class="text-red-500 text-xs">${rowData['세종_공통'].split(' ')[1]}</div>` : ''}
+                    </td>
+                </tr>
+            `;
+        });
+
+        html += '</tbody>';
+        table.innerHTML = html;
+    }
+
+    function renderRateTable() {
+        const table = document.getElementById('ltvRateTable');
+        const creditScores = Object.keys(rateData);
+        const ltvRanges = Object.keys(rateData[creditScores[0]]);
+
+        let html = `
+            <thead>
+                <tr class="bg-purple-50">
+                    <th class="p-2 border">신용점수</th>
+                    ${ltvRanges.map(ltv => `<th class="p-2 border">${ltv}</th>`).join('')}
+                </tr>
+            </thead>
+            <tbody>
+        `;
+
+        creditScores.forEach(score => {
+            html += `
+                <tr>
+                    <td class="p-2 border">${score}</td>
+                    ${ltvRanges.map(ltv => 
+                        `<td class="p-2 border text-center font-bold text-purple-600">
+                            ${rateData[score][ltv]}
+                        </td>`
+                    ).join('')}
+                </tr>
+            `;
+        });
+
+        html += '</tbody>';
+        table.innerHTML = html;
+    }
+
+    function renderTables() {
+        renderLtvTable();
+        renderRateTable();
+    }
+
+    // 초기화 함수
+    function initModal() {
+        const btn = document.getElementById('regionClassificationBtn');
+        const modal = document.getElementById('regionClassificationModal');
+        const closeBtn = document.getElementById('closeRegionClassificationModal');
+
+        if (!btn || !modal || !closeBtn) {
+            console.error('[조견표] 필수 DOM 요소를 찾을 수 없습니다');
+            return;
+        }
+
+        // 버튼 클릭 이벤트
+        btn.addEventListener('click', async function() {
+            console.log('[조견표] 버튼 클릭됨');
+            if (!ltvData) {
+                const success = await loadData();
+                if (!success) return;
+            }
+            renderTables();
+            modal.classList.remove('hidden');
+        });
+
+        // 닫기 버튼 이벤트
+        closeBtn.addEventListener('click', function() {
+            modal.classList.add('hidden');
+        });
+
+        // 외부 클릭 시 닫기
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                modal.classList.add('hidden');
+            }
+        });
+    }
+
+    // DOM 로드 시 초기화
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initModal);
+    } else {
+        initModal();
+    }
+})();
+</script>

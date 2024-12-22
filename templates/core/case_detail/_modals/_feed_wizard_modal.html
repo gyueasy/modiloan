@@ -1,0 +1,152 @@
+<!-- 피드 마법사 모달 -->
+<div id="feedWizardModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-xl shadow-2xl w-[800px] max-h-[90vh] flex flex-col">
+        <!-- 모달 헤더 -->
+        <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+            <h2 class="text-xl font-semibold text-gray-800">피드 마법사</h2>
+            <button id="closeFeedWizardModal" class="text-gray-500 hover:text-gray-800 transition-colors">
+                <span class="material-icons">close</span>
+            </button>
+        </div>
+
+        <!-- 피드 양식 선택 그리드 -->
+        <div class="grid grid-cols-4 gap-2 p-4 bg-gray-100">
+            <button class="feed-type-btn bg-white border-2 border-transparent hover:border-blue-500 rounded-lg p-2 transition-all">
+                신용조회
+            </button>
+            <button class="feed-type-btn bg-white border-2 border-transparent hover:border-blue-500 rounded-lg p-2 transition-all">
+                결과 확인
+            </button>
+            <button class="feed-type-btn bg-white border-2 border-transparent hover:border-blue-500 rounded-lg p-2 transition-all">
+                심사서류
+            </button>
+            <button class="feed-type-btn bg-white border-2 border-transparent hover:border-blue-500 rounded-lg p-2 transition-all">
+                심사접수
+            </button>
+            <button class="feed-type-btn bg-white border-2 border-transparent hover:border-blue-500 rounded-lg p-2 transition-all">
+                승인
+            </button>
+            <button class="feed-type-btn bg-white border-2 border-transparent hover:border-blue-500 rounded-lg p-2 transition-all">
+                자서일정
+            </button>
+            <button class="feed-type-btn bg-white border-2 border-transparent hover:border-blue-500 rounded-lg p-2 transition-all">
+                자서완료
+            </button>
+            <button class="feed-type-btn bg-white border-2 border-transparent hover:border-blue-500 rounded-lg p-2 transition-all">
+                기표
+            </button>
+        </div>
+
+        <!-- 피드 텍스트 영역 -->
+        <div class="flex-grow p-4">
+            <textarea id="feedTextArea" class="w-full h-[300px] p-4 bg-gray-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 resize-none" readonly></textarea>
+        </div>
+
+        <!-- 모달 하단 -->
+        <div class="p-4 border-t border-gray-200 flex justify-between items-center">
+            <div class="text-sm text-gray-500">
+                현재 대출 건의 정보로 자동 생성됩니다.
+            </div>
+            <button id="copyFeedBtn" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors">
+                복사하기
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const feedWizardBtn = document.getElementById('feedWizardBtn');
+    const feedWizardModal = document.getElementById('feedWizardModal');
+    const closeFeedWizardModal = document.getElementById('closeFeedWizardModal');
+    const feedTypeButtons = document.querySelectorAll('.feed-type-btn');
+    const feedTextArea = document.getElementById('feedTextArea');
+    const copyFeedBtn = document.getElementById('copyFeedBtn');
+
+    // 디버그: 윈도우 앱 데이터 확인
+    console.log('window.loanCaseApp:', window.loanCaseApp);
+
+    // 피드 양식 템플릿 함수들
+    const feedTemplates = {
+        '신용조회': (data) => {
+            console.log('신용조회 템플릿 데이터:', data);
+            return `<신용조회 완료 후>
+${data.borrower_name || 'OOO'}고객 
+신용조회 완료했습니다. 
+결과 값 확인 후 답변드리겠습니다. 
+-
+래퍼명`;
+        },
+        
+        '결과 확인': (data) => {
+            console.log('결과 확인 템플릿 데이터:', data);
+            return `<신용조회 결과 확인 후>
+${data.borrower_name || 'OOO'}고객(N${data.borrower_credit_score || '미확인'}점)
+${data.address_main || '주소 미확인'} ${data.address_detail || ''}
+-
+기타코멘트
+심사서류 안내드릴까요?
+-
+래퍼명`;
+        }
+    };
+
+    // 피드 마법사 버튼 클릭 시 모달 열기
+    if (feedWizardBtn && feedWizardModal) {
+        feedWizardBtn.addEventListener('click', () => {
+            // 대출 건 데이터 가져오기 (페이지에서 로드된 데이터)
+            const loanCaseData = window.loanCaseApp?.loan_case || {};
+            console.log('선택된 대출 건 데이터:', loanCaseData);
+
+            // 피드 양식 선택 초기화
+            feedTypeButtons.forEach(btn => {
+                btn.classList.remove('border-blue-500', 'bg-blue-50');
+            });
+
+            // 첫 번째 버튼 자동 선택
+            const firstButton = feedTypeButtons[0];
+            firstButton.classList.add('border-blue-500', 'bg-blue-50');
+
+            // 첫 번째 템플릿으로 초기 텍스트 설정
+            const firstFeedType = firstButton.textContent.trim();
+            feedTextArea.value = feedTemplates[firstFeedType] ? 
+                feedTemplates[firstFeedType](loanCaseData) : '';
+
+            // 모달 표시
+            feedWizardModal.classList.remove('hidden');
+        });
+    }
+
+    // 피드 양식 선택
+    feedTypeButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            // 대출 건 데이터 가져오기
+            const loanCaseData = window.loanCaseApp?.loan_case || {};
+
+            // 버튼 선택 시각화
+            feedTypeButtons.forEach(btn => btn.classList.remove('border-blue-500', 'bg-blue-50'));
+            button.classList.add('border-blue-500', 'bg-blue-50');
+
+            // 해당 양식 텍스트 영역에 삽입
+            const feedType = button.textContent.trim();
+            feedTextArea.value = feedTemplates[feedType] ? 
+                feedTemplates[feedType](loanCaseData) : '';
+        });
+    });
+
+    // 복사 기능
+    copyFeedBtn.addEventListener('click', () => {
+        feedTextArea.select();
+        document.execCommand('copy');
+        copyFeedBtn.textContent = '복사됨!';
+        setTimeout(() => {
+            copyFeedBtn.textContent = '복사하기';
+        }, 1500);
+    });
+
+    // 모달 닫기
+    closeFeedWizardModal.addEventListener('click', () => {
+        feedWizardModal.classList.add('hidden');
+    });
+});
+</script>

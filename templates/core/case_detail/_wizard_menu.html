@@ -1,0 +1,50 @@
+<!-- core/case_detail/_wizard_menu.html -->
+{% include 'core/case_detail/_modals/_feed_wizard_modal.html' %}
+{% include 'core/case_detail/_modals/region_classification_modal.html' %}
+<div class="fixed top-0 left-0 h-full w-16 bg-gray-800 text-white flex flex-col z-50">
+    <div class="flex flex-col items-center py-4 space-y-4">
+        <button id="saveFormBtnBottom" class="wizard-menu-item w-full p-2 hover:bg-gray-700 transition-colors flex flex-col items-center justify-center" title="저장">
+            <span class="material-icons text-xl">save</span>
+            <span class="text-xs mt-1">저장</span>
+        </button>
+        <button id="feedWizardBtn" class="wizard-menu-item w-full p-2 hover:bg-gray-700 transition-colors flex flex-col items-center justify-center" title="피드 마법사">
+            <span class="material-icons text-xl">auto_fix_high</span>
+            <span class="text-xs mt-1">피드</span>
+        </button>
+        <button class="wizard-menu-item w-full p-2 hover:bg-gray-700 transition-colors flex flex-col items-center justify-center" title="피드 양식">
+            <span class="material-icons text-xl">format_paint</span>
+            <span class="text-xs mt-1">양식</span>
+        </button>
+        <button id="regionClassificationBtn" type="button" class="wizard-menu-item w-full p-2 hover:bg-gray-700 transition-colors flex flex-col items-center justify-center" title="조견 보기">
+            <span class="material-icons text-xl">visibility</span>
+            <span class="text-xs mt-1">조견</span>
+        </button>
+        <button class="wizard-menu-item w-full p-2 hover:bg-gray-700 transition-colors flex flex-col items-center justify-center" title="LTV/금리">
+            <span class="material-icons text-xl">percent</span>
+            <span class="text-xs mt-1">LTV</span>
+        </button>
+        <button class="wizard-menu-item w-full p-2 hover:bg-gray-700 transition-colors flex flex-col items-center justify-center" title="DSR 계산">
+            <span class="material-icons text-xl">calculate</span>
+            <span class="text-xs mt-1">DSR</span>
+        </button>
+        <button class="wizard-menu-item w-full p-2 hover:bg-gray-700 transition-colors flex flex-col items-center justify-center" title="급지 확인">
+            <span class="material-icons text-xl">location_city</span>
+            <span class="text-xs mt-1">급지</span>
+        </button>
+        <button class="wizard-menu-item w-full p-2 hover:bg-gray-700 transition-colors flex flex-col items-center justify-center" title="자서 요약">
+            <span class="material-icons text-xl">summarize</span>
+            <span class="text-xs mt-1">요약</span>
+        </button>
+        <button class="wizard-menu-item w-full p-2 hover:bg-gray-700 transition-colors flex flex-col items-center justify-center" title="심사 서류 안내">
+            <span class="material-icons text-xl">document_scanner</span>
+            <span class="text-xs mt-1">서류</span>
+        </button>
+    </div>
+</div>
+
+<style>
+/* 위저드 메뉴로 인해 메인 콘텐츠 왼쪽 여백 추가 */
+body {
+    padding-left: 4rem;
+}
+</style>

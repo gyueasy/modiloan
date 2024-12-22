@@ -1,19 +1,3 @@
-console.log('대시보드 스크립트 시작');
-
-// 전역 변수 설정 전에 FullCalendar 확인
-if (typeof FullCalendar === 'undefined') {
-    console.error('FullCalendar가 로드되지 않았습니다');
-}
-
-// DOM이 준비되었는지 가장 기본적인 방법으로 확인
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-        console.log('DOM 로드됨 - 기본');
-    });
-} else {
-    console.log('DOM 이미 로드됨 - 기본');
-}
-
 // 전역 변수 설정
 let calendar;
 let apiResponseCache = null;
@@ -102,7 +86,7 @@ const Modal = {
             await navigator.clipboard.writeText(content);
             const originalText = DOM.copyResponseBtn.innerHTML;
             DOM.copyResponseBtn.innerHTML = '<span>복사 완료!</span><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>';
-            
+
             setTimeout(() => {
                 DOM.copyResponseBtn.innerHTML = originalText;
             }, 2000);
@@ -117,38 +101,78 @@ const Dashboard = {
     async updateStats() {
         const data = await fetchWithAuth('/api/');
         if (!data) return;
-        
+
         apiResponseCache = data;
-        
+
         // 통계 업데이트
         this.updateStatElement('new-cases', data.today_stats.new_cases);
         this.updateStatElement('ongoing-cases', data.today_stats.ongoing_cases);
-        
+
         // 월별 통계 업데이트
         if (data.month_stats) {
             const monthlyStats = document.querySelector('[data-stat="monthly-stats"]');
             if (monthlyStats) {
                 monthlyStats.textContent = `${data.month_stats.count}건`;
-                
+
                 const monthlyAmount = document.querySelector('[data-stat="monthly-amount"]');
-                if (monthlyAmount) {
-                    monthlyAmount.textContent = `${data.month_stats.amount.toLocaleString()}만원`;
+                if (monthlyAmount && data.month_stats.amount) {
+                    // 수수료 계산 (0.3%)
+                    const commission = Math.floor(data.month_stats.amount * 10000 * 0.003);
+
+                    monthlyAmount.innerHTML = `
+                    ${data.month_stats.amount.toLocaleString()}만원
+                    <span class="text-sm text-gray-500">
+                        (예상 수수료: ${commission.toLocaleString()}원)
+                    </span>
+                `;
                 }
             }
         }
-        
+
         // 긴급 케이스 업데이트
         this.updateUrgentCases(data.urgent_cases);
-        
+
         // 공지사항 업데이트
         this.updateNotices(data.notices);
+
+        // 최근 케이스 업데이트
+        this.updateRecentCases(data.recent_cases);
+    },
+
+    // 최근 케이스 업데이트 메소드 추가
+    updateRecentCases(cases) {
+        const container = document.querySelector('.recent-cases-container');
+        if (!container || !cases) return;
+
+        container.innerHTML = cases.length ? cases.map(case_ => `
+        <a href="/web/cases/${case_.id}/" class="block bg-gray-50 rounded p-3 hover:bg-gray-100 transition">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="font-medium text-gray-800">${case_.borrower_name}</p>
+                    <p class="text-sm text-gray-600">
+                        ${case_.status_display || case_.status}
+                        ${case_.loan_amount ? ` - ${case_.loan_amount.toLocaleString()}만원` : ''}
+                    </p>
+                </div>
+                <span class="text-sm text-gray-500">${new Date(case_.created_at).toLocaleDateString()}</span>
+            </div>
+        </a>
+    `).join('') : '<p class="text-gray-500 text-center">최근 등록된 케이스가 없습니다.</p>';
+    },
+
+    startAutoRefresh() {
+        // 5분마다 자동 새로고침
+        setInterval(() => {
+            this.updateStats();
+            this.updateEvents();
+        }, 5 * 60 * 1000);
     },
 
     updateStatElement(elementId, value, diff) {
         const element = document.querySelector(`[data-stat="${elementId}"]`);
         if (element) {
             element.textContent = `${value}건`;
-            
+
             const diffElement = document.querySelector(`[data-stat="${elementId}-diff"]`);
             if (diffElement && diff !== undefined) {
                 const diffText = diff > 0 ? `+${diff}` : diff;
@@ -198,75 +222,79 @@ const Dashboard = {
     async updateEvents() {
         console.log('updateEvents 시작');
         try {
+            // 내부 fetchWithAuth 메서드로 직접 호출
             const response = await fetchWithAuth('/api/events/');
-            console.log('이벤트 API 응답:', response);
-            
+
+            console.log('fetchWithAuth 응답:', response);
+
             if (!response) {
-                console.warn('이벤트 응답이 없습니다.');
+                console.warn('응답이 없습니다.');
                 return;
             }
-            
-            eventsResponseCache = response;
-            
-            if (!calendar) {
-                console.warn('캘린더가 초기화되지 않았습니다.');
+
+            const events = Array.isArray(response) ? response :
+                (response.results ? response.results : []);
+
+            console.log('파싱된 이벤트:', events);
+
+            if (!events.length) {
+                console.warn('이벤트가 없습니다.');
                 return;
             }
-            
-            calendar.removeAllEvents();
-            
-            const calendarEvents = response.map(event => ({
-                id: event.id,
-                title: event.title,
-                start: event.date,
-                backgroundColor: this.getEventTypeColor(event.event_type),
-                extendedProps: {
-                    description: event.description,
-                    loan_case: event.loan_case,
-                    type: event.event_type
-                }
-            }));
-            
-            console.log('변환된 캘린더 이벤트:', calendarEvents);
-            calendar.addEventSource(calendarEvents);
-            console.log('캘린더 이벤트 추가 완료');
-            
+
+            eventsResponseCache = events;
+
+            if (calendar) {
+                calendar.removeAllEvents();
+
+                const calendarEvents = events.map(event => {
+                    let backgroundColor, title;
+
+                    switch (event.event_type) {
+                        case 'scheduled':
+                            backgroundColor = '#FB8C00';
+                            title = `${event.title} (접수)`;
+                            break;
+                        case 'authorizing':
+                            backgroundColor = '#1E88E5';
+                            title = `${event.title} (자서)`;
+                            break;
+                        case 'journalizing':
+                            backgroundColor = '#43A047';
+                            title = `${event.title} (기표)`;
+                            break;
+                        default:
+                            backgroundColor = '#90CAF9';
+                            title = event.title;
+                    }
+
+                    return {
+                        id: event.id,
+                        title: title,
+                        start: event.date,
+                        backgroundColor: backgroundColor,
+                        extendedProps: {
+                            description: event.description,
+                            loan_case: event.loan_case,
+                            type: event.event_type
+                        }
+                    };
+                });
+
+                console.log('캘린더 이벤트:', calendarEvents);
+                calendar.addEventSource(calendarEvents);
+            }
         } catch (error) {
-            console.error('이벤트 업데이트 중 에러:', error);
+            console.error('updateEvents 에러:', error);
         }
-    },
-
-    getEventTypeColor(eventType) {
-        // API의 event_type에 따른 색상 매핑
-        switch (eventType) {
-            case 'scheduled':
-                return '#FB8C00';  // 접수 - 주황색
-            case 'authorizing':
-                return '#1E88E5';  // 자서 - 파란색
-            case 'journalizing':
-                return '#43A047';  // 기표 - 초록색
-            default:
-                return '#90CAF9';  // 기본 색상
-        }
-    },
-
-    startAutoRefresh() {
-        setInterval(() => {
-            this.updateStats();
-            this.updateEvents();
-        }, 5 * 60 * 1000); // 5분마다 갱신
     }
 };
 
 // 캘린더 초기화
 function initializeCalendar() {
     const calendarEl = document.getElementById('calendar');
-    if (!calendarEl) {
-        console.error('캘린더 요소를 찾을 수 없습니다.');
-        return;
-    }
+    if (!calendarEl) return;
 
-    console.log('캘린더 초기화 시작');
     calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: 'dayGridMonth',
         headerToolbar: {
@@ -276,22 +304,16 @@ function initializeCalendar() {
         },
         locale: 'ko',
         height: 'auto',
-        eventClick: function(info) {
+        eventClick: function (info) {
             const event = info.event;
             const loanCaseId = event.extendedProps.loan_case;
+
+            // loan_case id로 상세 페이지 이동
             if (loanCaseId) {
                 window.location.href = `/web/cases/${loanCaseId}/`;
             }
-            
-            Modal.show('이벤트 상세정보', {
-                제목: event.title,
-                설명: props.description,
-                유형: props.type,
-                날짜: event.start?.toLocaleDateString(),
-                대출케이스ID: props.loan_case
-            });
         },
-        eventDidMount: function(info) {
+        eventDidMount: function (info) {
             // 툴팁 설정
             $(info.el).tooltip({
                 title: `${info.event.title}\n${info.event.extendedProps.description || ''}`,
@@ -301,9 +323,8 @@ function initializeCalendar() {
             });
         }
     });
-    
+
     calendar.render();
-    console.log('캘린더 초기화 완료');
 }
 
 // 이벤트 리스너 설정
@@ -314,12 +335,12 @@ function setupEventListeners() {
         if (e.target === DOM.modal) Modal.hide();
     });
     DOM.copyResponseBtn.addEventListener('click', Modal.copyContent);
-    
+
     // API 응답 보기 버튼
     DOM.showApiBtn.addEventListener('click', () => {
         Modal.show('API 응답', apiResponseCache);
     });
-    
+
     DOM.showEventsBtn.addEventListener('click', () => {
         Modal.show('이벤트 API 응답', eventsResponseCache);
     });
@@ -332,22 +353,25 @@ function setupEventListeners() {
 
 // 초기화 함수
 function initialize() {
-    console.log('초기화 시작');
     setupEventListeners();
     initializeCalendar();
     Dashboard.updateStats();
     Dashboard.updateEvents();
     Dashboard.startAutoRefresh();
-    console.log('초기화 완료');
 }
 
-// 페이지 로드 시 초기화 (단일 이벤트 리스너로 통일)
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-        console.log('DOMContentLoaded 이벤트 발생');
-        initialize();
-    });
-} else {
-    console.log('문서가 이미 로드됨');
+// 페이지 로드 시 초기화
+document.addEventListener('DOMContentLoaded', function () {
+    console.log('★★★ DOMContentLoaded 이벤트 발생 ★★★');
     initialize();
-}
+});
+
+// 또는 즉시 실행으로도 체크
+(function () {
+    console.log('★★★ 스크립트 즉시 실행 ★★★');
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initialize);
+    } else {
+        initialize();
+    }
+})();
