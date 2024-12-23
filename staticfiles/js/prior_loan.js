@@ -145,7 +145,10 @@ class PriorLoanManager {
     }
 
     renderTotalRow(loans) {
-        const totalAmount = loans.reduce((sum, loan) => sum + loan.amount, 0);
+        const totalAmount = loans
+            .filter(loan => loan.loan_type === '선설정')  // 선설정만 필터링
+            .reduce((sum, loan) => sum + loan.amount, 0);
+        
         return `
             <tr class="bg-gray-50 font-semibold">
                 <td colspan="2" class="px-6 py-4 whitespace-nowrap">
@@ -159,20 +162,29 @@ class PriorLoanManager {
     }
 
     async openModal(loanId = null) {
+        console.log('Opening modal with loanId:', loanId);
+        console.log('Current endpoints:', this.endpoints);
         this.currentLoanId = loanId;
         
         if (loanId) {
             try {
-                const loan = await window.authUtils.fetchWithAuth(
-                    `${this.endpoints.base}${loanId}/`
-                );
+                const url = `${this.endpoints.base}${loanId}/`;
+                console.log('Fetching from URL:', url);
+                
+                const loan = await window.authUtils.fetchWithAuth(url);
+                console.log('Received loan data:', loan);
+                
                 this.populateForm(loan);
             } catch (error) {
-                window.authUtils.showToast('에러', error.message, 'error');
+                console.error('Error in openModal:', error);
+                console.error('Error details:', {
+                    loanId,
+                    endpoints: this.endpoints,
+                    currentLoanId: this.currentLoanId
+                });
+                window.authUtils.showToast('에러', '대출 정보를 불러오는데 실패했습니다.', 'error');
                 return;
             }
-        } else {
-            this.loanForm?.reset();
         }
         
         this.loanModal?.classList.remove('hidden');
@@ -193,7 +205,14 @@ class PriorLoanManager {
             if (data.amount === '') {
                 data.amount = null;
             } else {
-                data.amount = parseInt(data.amount.replace(/[^0-9]/g, ''));
+                // 쉼표와 '만원' 텍스트 제거하고 숫자만 추출
+                const cleanAmount = data.amount.replace(/[^0-9.-]/g, '');
+                data.amount = parseInt(cleanAmount, 10);
+                
+                // 유효한 숫자인지 확인
+                if (isNaN(data.amount)) {
+                    throw new Error('유효하지 않은 금액입니다.');
+                }
             }
             
             Object.keys(data).forEach(key => {

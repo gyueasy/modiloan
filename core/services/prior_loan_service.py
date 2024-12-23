@@ -1,4 +1,3 @@
-# core/services/prior_loan_service.py
 from django.shortcuts import get_object_or_404
 from django.db import transaction
 from django.core.exceptions import ValidationError
@@ -11,9 +10,23 @@ class PriorLoanService(BaseService):
     @staticmethod
     def get_prior_loans_for_case(loan_case_id):
         """특정 대출건의 모든 선설정/대환 조회"""
+        loan_case = PriorLoanService.get_loan_case(
+            loan_case_id)  # BaseService 메서드 사용
+        if not loan_case:
+            return []
+
         return PriorLoan.objects.select_related('loan_case').filter(
             loan_case_id=loan_case_id
-        ).order_by('loan_type', '-amount')  # 선설정/대환 구분하고 금액 내림차순
+        ).order_by('loan_type', '-amount')
+    
+    @staticmethod
+    def get_prior_loan(loan_id):
+        """특정 선설정/대환 조회"""
+        try:
+            loan = get_object_or_404(PriorLoan, id=loan_id)
+            return loan
+        except PriorLoan.DoesNotExist:
+            raise ValidationError('선설정/대환 정보를 찾을 수 없습니다.')
 
     @staticmethod
     @transaction.atomic
@@ -27,9 +40,10 @@ class PriorLoanService(BaseService):
             if errors:
                 raise ValidationError(errors)
 
-            # LTV 검증 (대출 가능 금액 초과 여부)
-            if not PriorLoanService._validate_ltv_limit(loan_case, loan_data.get('amount', 0)):
-                raise ValidationError('설정 가능한 최대 금액을 초과했습니다.')
+            # LTV 검증 (선설정인 경우에만)
+            if loan_data['loan_type'] == '선설정':  # 선설정일 때만 체크
+                if not PriorLoanService._validate_ltv_limit(loan_case, loan_data.get('amount', 0)):
+                    raise ValidationError('설정 가능한 최대 금액을 초과했습니다.')
 
             # 선설정/대환 생성
             prior_loan = PriorLoan.objects.create(
@@ -56,18 +70,19 @@ class PriorLoanService(BaseService):
             if errors:
                 raise ValidationError(errors)
 
-            # 변경된 금액으로 LTV 검증
-            current_amount = prior_loan.amount
-            new_amount = int(loan_data['amount'])
-            amount_diff = new_amount - current_amount
+            # 변경된 금액으로 LTV 검증 (선설정인 경우에만)
+            if loan_data['loan_type'] == '선설정':
+                current_amount = prior_loan.amount if prior_loan.loan_type == '선설정' else 0
+                new_amount = int(loan_data['amount'])
+                amount_diff = new_amount - current_amount
 
-            if not PriorLoanService._validate_ltv_limit(prior_loan.loan_case, amount_diff):
-                raise ValidationError('설정 가능한 최대 금액을 초과했습니다.')
+                if not PriorLoanService._validate_ltv_limit(prior_loan.loan_case, amount_diff):
+                    raise ValidationError('설정 가능한 최대 금액을 초과했습니다.')
 
             # 정보 업데이트
             prior_loan.loan_type = loan_data['loan_type']
             prior_loan.financial_company = loan_data['financial_company']
-            prior_loan.amount = new_amount
+            prior_loan.amount = int(loan_data['amount'])
             prior_loan.save()
 
             return prior_loan
@@ -98,8 +113,10 @@ class PriorLoanService(BaseService):
     @staticmethod
     def get_total_amount(loan_case_id):
         """특정 대출건의 전체 선설정/대환 금액 합계"""
+        # 선설정 금액만 합산하도록 수정
         total = PriorLoan.objects.filter(
-            loan_case_id=loan_case_id
+            loan_case_id=loan_case_id,
+            loan_type='선설정'  # 선설정만 필터링
         ).aggregate(
             total_amount=Sum('amount')
         )['total_amount']
@@ -141,17 +158,13 @@ class PriorLoanService(BaseService):
 
     @staticmethod
     def _validate_ltv_limit(loan_case, additional_amount):
-        """LTV 한도 검증 (시세 대비 대출금액 비율)"""
-        if not loan_case.price_amount:  # 시세 정보가 없으면 검증 생략
+        """LTV 한도 검증"""
+        if not loan_case.price_amount:
             return True
 
-        total_amount = PriorLoanService.get_total_amount(loan_case.id)
-        new_total = total_amount + additional_amount
-
-        # LTV 한도 계산 (시세의 70%로 가정)
-        max_amount = int(loan_case.price_amount * 0.7)
-
-        return new_total <= max_amount
+        # 새로운 금액만 체크
+        max_amount = loan_case.price_amount  # LTV 제거, 시세 금액 그대로 사용
+        return additional_amount <= max_amount
 
     @staticmethod
     def format_amount(amount):
@@ -167,15 +180,3 @@ class PriorLoanService(BaseService):
             return f"{amount}만원"
         except:
             return str(amount)
-        
-    @staticmethod
-    def get_prior_loans_for_case(loan_case_id):
-        """특정 대출건의 모든 선설정/대환 조회"""
-        loan_case = PriorLoanService.get_loan_case(loan_case_id)  # BaseService 메서드 사용
-        if not loan_case:
-            return []
-            
-        return PriorLoan.objects.select_related('loan_case').filter(
-            loan_case_id=loan_case_id
-        ).order_by('loan_type', '-amount')
-

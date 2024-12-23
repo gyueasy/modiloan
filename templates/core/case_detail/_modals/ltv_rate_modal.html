@@ -1,0 +1,291 @@
+{% load static %}
+<!-- core/case_detail/_modals/ltv_rate_modal.html -->
+
+<!-- 모달 -->
+<div id="ltvRateModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-xl shadow-2xl w-[500px] max-h-[90vh] flex flex-col p-6">
+        <!-- 모달 헤더 -->
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xl font-semibold text-gray-800 flex items-center">
+                <span class="material-icons mr-2">account_balance</span>
+                LTV 및 금리 정보
+            </h2>
+            <button id="closeLtvRateModal" class="text-gray-500 hover:text-gray-800 transition-colors">
+                <span class="material-icons">close</span>
+            </button>
+        </div>
+
+        <!-- 현재 대출 정보 표시 -->
+        <div id="currentLoanInfo" class="space-y-3">
+            <div class="flex items-center">
+                <span class="material-icons mr-2 text-blue-500">location_on</span>
+                <div>
+                    <span class="font-medium">지역별 LTV 티어:</span>
+                    <span id="regionTier" class="ml-2">-</span>
+                </div>
+            </div>
+            <div class="flex items-center">
+                <span class="material-icons mr-2 text-green-500">account_tree</span>
+                <div>
+                    <span class="font-medium">지역별 LTV:</span>
+                    <span id="regionalLtv" class="ml-2">-</span>
+                </div>
+            </div>
+            <div class="flex items-center">
+                <span class="material-icons mr-2 text-purple-500">stars</span>
+                <div>
+                    <span class="font-medium">신용등급:</span>
+                    <span id="creditGrade" class="ml-2">-</span>
+                </div>
+            </div>
+            <!-- <div class="flex items-center">
+                <span class="material-icons mr-2 text-red-500">attach_money</span>
+                <div>
+                    <span class="font-medium">신용등급 금리:</span>
+                    <span id="creditRate" class="ml-2">-</span>
+                </div>
+            </div> -->
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    let ltvData, rateData, regionData;
+    
+    // 지역 키 가져오기 함수 (LoanCalculator.get_region_key 참고)
+    function getRegionKey(region, tier) {
+        // 서울, 경기 처리
+        if (region === "서울" || region === "경기") {
+            return `${region}_${tier}급지`;
+        }
+        // 광역시 처리
+        else if (["부산", "인천", "대구", "대전", "광주", "울산"].some(city => region.includes(city))) {
+            return `인천및광역시_${tier}급지`;
+        }
+        // 세종시 처리
+        else if (region.includes("세종")) {
+            return "세종_공통";
+        }
+        return null;
+    }
+
+    // 주소 정규화 함수
+    function normalizeRegion(address) {
+        if (!address) return '';
+        
+        const cleanAddress = address.replace(/(특별시|광역시|시|도|군|구)/g, '').trim();
+        const parts = cleanAddress.split(/\s+/);
+        
+        // 첫 번째 부분이 서울/경기/광역시인 경우
+        const firstPart = parts[0];
+        if (firstPart === "서울" || firstPart === "경기") {
+            return firstPart;
+        }
+        
+        // 광역시인 경우
+        if (["부산", "인천", "대구", "대전", "광주", "울산"].includes(firstPart)) {
+            return firstPart;
+        }
+        
+        // 세종시
+        if (firstPart.includes("세종")) {
+            return "세종";
+        }
+        
+        return firstPart;
+    }
+
+    // 신용점수 구간 확인 함수 (LoanCalculator.get_credit_range 참고)
+    function getCreditRange(score) {
+        if (!score) return null;
+        if (score >= 865) return "N865점 이상 (1-2구간)";
+        if (score >= 790) return "N790점 이상 (3-4구간)";
+        if (score >= 710) return "N710점 이상 (5-6구간)";
+        if (score >= 685) return "N685점 이상 (7구간)";
+        return null;
+    }
+
+    // 지역 가산금리 계산 (LoanRateCalculator.get_regional_adjustment 참고)
+    function getRegionalAdjustment(region) {
+        const normalizedRegion = normalizeRegion(region);
+        return ["서울", "경기"].includes(normalizedRegion) ? 0.0 : 0.5;
+    }
+
+    async function loadData() {
+        try {
+            const responses = await Promise.all([
+                fetch("{% static 'json/regional_tiers.json' %}"),
+                fetch("{% static 'json/ltv_data.json' %}"),
+                fetch("{% static 'json/interest_rate_data.json' %}")
+            ]);
+            
+            [regionData, ltvData, rateData] = await Promise.all(
+                responses.map(response => response.json())
+            );
+            
+            return true;
+        } catch (error) {
+            console.error('[LTV/금리] 데이터 로드 중 오류:', error);
+            return false;
+        }
+    }
+
+    function normalizeRegion(address) {
+    if (!address) return '';
+    
+    // 도, 특별시, 광역시, 시 등의 접미사 제거
+    const cleanAddress = address.replace(/(특별시|광역시|도|시|군|구)/g, '').trim();
+    const parts = cleanAddress.split(/\s+/);
+    
+    // 첫 번째 부분이 서울/경기인 경우
+    const firstPart = parts[0];
+    if (firstPart === "서울" || firstPart === "경기") {
+        return firstPart;
+    }
+    
+    // 광역시인 경우
+    if (["부산", "인천", "대구", "대전", "광주", "울산"].includes(firstPart)) {
+        return firstPart;
+    }
+    
+    // 세종시
+    if (firstPart.includes("세종")) {
+        return "세종";
+    }
+    
+    return firstPart;
+}
+
+    function updateCurrentInfo(address, creditScore) {
+        console.log('원본 주소:', address);
+        
+        const normalizedRegion = normalizeRegion(address);
+        console.log('정규화된 지역:', normalizedRegion);
+        
+        // 스페이스 제거 버전
+        const cleanedAddress = address.replace(/\s/g, '').replace(/(특별시|광역시|도|시|군|구)/g, '');
+        console.log('스페이스 제거된 주소:', cleanedAddress);
+        
+        const currentTier = 
+            regionData[cleanedAddress] || 
+            regionData[address.replace(/\s/g, '')] ||
+            1;
+        
+        console.log('찾은 티어:', currentTier);
+        
+        // 지역별 LTV 티어
+        document.getElementById('regionTier').textContent = 
+            `${normalizedRegion} ${currentTier}급지`;
+        
+        // 지역별 LTV
+        document.getElementById('regionalLtv').textContent = 
+            getRegionalLTV(normalizedRegion, currentTier, creditScore);
+        
+        // 신용등급
+        document.getElementById('creditGrade').textContent = 
+            getCreditRange(creditScore) || '-';
+    }
+
+    // 지역별 LTV 계산 함수
+    function getRegionalLTV(region, tier, creditScore) {
+        const currentCreditRange = getCreditRange(creditScore);
+        
+        // 서울/경기의 경우
+        if (region === '서울' || region === '경기') {
+            const key = `${region}_${tier}급지`;
+            return ltvData[currentCreditRange][key] || '-';
+        }
+        
+        // 인천, 대전, 대구, 부산, 울산, 광주의 경우
+        if (['인천', '대전', '대구', '부산', '울산', '광주'].includes(region)) {
+            const key = `인천및광역시_${tier}급지`;
+            return ltvData[currentCreditRange][key] || '-';
+        }
+        
+        // 세종의 경우
+        if (region === '세종') {
+            return ltvData[currentCreditRange]['세종_공통'] || '-';
+        }
+        
+        return '-';
+    }
+    // 신용등급 금리 계산 함수
+    function getCreditRateForRegion(region, creditScore) {
+        const currentCreditRange = getCreditRange(creditScore);
+        const regionalAdjustment = getRegionalAdjustment(region);
+        const normalizedRegion = normalizeRegion(region);
+        
+        // 가장 낮은 LTV 구간의 금리를 기준으로 함
+        const baseRate = parseFloat(rateData[currentCreditRange]['LTV 70%'].replace('%', ''));
+        
+        // 서울 지역 프로모션 적용
+        const promotionRate = normalizedRegion === '서울' ? -1.2 : 0;
+        
+        // 총 금리 계산
+        const totalRate = baseRate + regionalAdjustment + promotionRate;
+        
+        // 지역 외 지역의 경우 +0.5% 표시
+        if (regionalAdjustment > 0 && promotionRate === 0) {
+            return `${baseRate.toFixed(2)}% + 0.5%(지역가산) = ${totalRate.toFixed(2)}%`;
+        }
+        
+        // 서울 지역의 경우 프로모션 표시
+        if (normalizedRegion === '서울') {
+            return `${baseRate.toFixed(2)}% + 0.5%(지역가산) -1.2%(프로모션) = ${totalRate.toFixed(2)}%`;
+        }
+        
+        // 기본 경우
+        return `${baseRate.toFixed(2)}%`;
+    }
+
+    // 초기화 함수
+    async function initModal() {
+        const btn = document.getElementById('ltvRateBtn');
+        const modal = document.getElementById('ltvRateModal');
+        const closeBtn = document.getElementById('closeLtvRateModal');
+
+        if (!btn || !modal || !closeBtn) {
+            console.error('[LTV/금리] 필수 DOM 요소를 찾을 수 없습니다');
+            return;
+        }
+
+        // 버튼 클릭 이벤트
+        btn.addEventListener('click', async function() {
+            if (!ltvData) {
+                const success = await loadData();
+                if (!success) return;
+            }
+
+            // 현재 대출 정보 가져오기
+            const loanCase = window.loanCaseApp?.loan_case;
+            const address = loanCase?.address_main;
+            const creditScore = loanCase?.borrower_credit_score;
+
+            // 정보 업데이트
+            updateCurrentInfo(address, creditScore);
+            
+            modal.classList.remove('hidden');
+        });
+
+        // 닫기 버튼 이벤트
+        closeBtn.addEventListener('click', () => {
+            modal.classList.add('hidden');
+        });
+
+        // 외부 클릭 시 닫기
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.classList.add('hidden');
+            }
+        });
+    }
+
+    // DOM 로드 시 초기화
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initModal);
+    } else {
+        initModal();
+    }
+})();
+</script>

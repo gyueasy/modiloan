@@ -63,3 +63,5 @@ def prior_loan_detail_view(request, case_id, loan_id):
     except Exception as e:
         logger.error(f"Error in prior_loan_detail_view: {str(e)}")
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+

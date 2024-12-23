@@ -1,0 +1,25 @@
+/* static/admin/css/custom.css */
+/* JSON 필드 스타일링 */
+textarea[name="security_providers"],
+textarea[name="prior_loans"] {
+    font-family: monospace;
+    min-height: 150px;
+    white-space: pre;
+}
+
+/* 금액 입력 필드 스타일링 */
+input[type="number"] {
+    width: 150px !important;
+}
+
+/* 경고 표시 (가라사업자 등) */
+.field-is_fake_business .readonly {
+    color: #dc3545;
+    font-weight: bold;
+}
+
+/* 필수 입력 필드 강조 */
+.required label {
+    font-weight: bold;
+    color: #333;
+}

@@ -1,6 +1,7 @@
 <!-- core/case_detail/_wizard_menu.html -->
 {% include 'core/case_detail/_modals/_feed_wizard_modal.html' %}
 {% include 'core/case_detail/_modals/region_classification_modal.html' %}
+{% include 'core/case_detail/_modals/ltv_rate_modal.html' %}
 <div class="fixed top-0 left-0 h-full w-16 bg-gray-800 text-white flex flex-col z-50">
     <div class="flex flex-col items-center py-4 space-y-4">
         <button id="saveFormBtnBottom" class="wizard-menu-item w-full p-2 hover:bg-gray-700 transition-colors flex flex-col items-center justify-center" title="저장">
@@ -19,8 +20,8 @@
             <span class="material-icons text-xl">visibility</span>
             <span class="text-xs mt-1">조견</span>
         </button>
-        <button class="wizard-menu-item w-full p-2 hover:bg-gray-700 transition-colors flex flex-col items-center justify-center" title="LTV/금리">
-            <span class="material-icons text-xl">percent</span>
+        <button id="ltvRateBtn" type="button" class="wizard-menu-item w-full p-2 hover:bg-gray-700 transition-colors flex flex-col items-center justify-center" title="LTV/금리">
+            <span class="material-icons text-xl">visibility</span>
             <span class="text-xs mt-1">LTV</span>
         </button>
         <button class="wizard-menu-item w-full p-2 hover:bg-gray-700 transition-colors flex flex-col items-center justify-center" title="DSR 계산">
