@@ -12,4 +12,5 @@ urlpatterns = [
     path('api/accounts/', include('accounts.urls')),
     path('api/', include('core.urls')),
     path('web/', include('core.web_urls')),  # 웹페이지용 (/web/login/)
+    path('api/todos/', include('todos.urls')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -65,6 +65,7 @@ INSTALLED_APPS = [
     # 생성한 앱 등록
     'accounts.apps.AccountsConfig',
     'core.apps.CoreConfig',
+    'todos.apps.TodosConfig',
     # Tailwind CSS
     # 'tailwind',
     # 'theme',  # 이후 생성할 Tailwind CSS 테마 앱
@@ -154,23 +155,23 @@ SIMPLE_JWT = {
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
 # 데이터베이스 설정
-# if 'DATABASE_URL' in os.environ:
-#     DATABASES = {
-#         'default': dj_database_url.config(default=os.getenv('DATABASE_URL'), conn_max_age=600)
-#     }
-# else:
-#     DATABASES = {
-#         'default': {
-#             'ENGINE': 'django.db.backends.sqlite3',
-#             'NAME': BASE_DIR / 'db.sqlite3',
-#         }
-#     }
-DATABASES = {
-    'default': dj_database_url.config(
-        default='postgresql://postgres:IGKBppFSyKKIANyTLKCUrSeVqfHglzpI@postgres.railway.internal:5432/railway',
-        conn_max_age=600
-    )
-}
+if 'DATABASE_URL' in os.environ:
+    DATABASES = {
+        'default': dj_database_url.config(default=os.getenv('DATABASE_URL'), conn_max_age=600)
+    }
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
+# DATABASES = {
+#     'default': dj_database_url.config(
+#         default='postgresql://postgres:IGKBppFSyKKIANyTLKCUrSeVqfHglzpI@postgres.railway.internal:5432/railway',
+#         conn_max_age=600
+#     )
+# }
 
 
 # Password validation

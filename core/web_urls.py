@@ -70,4 +70,14 @@ urlpatterns = [
         (TemplateView.as_view(
             template_name='accounts/profile.html')),
         name='profile'),
+
+    path('todos/',
+        (TemplateView.as_view(
+            template_name='todos/dashboard.html')),
+        name='todo_dashboard'),
+    
+    path('todos/templates/',
+        (TemplateView.as_view(
+            template_name='todos/template_list.html')),
+        name='todo_templates'),
 ]

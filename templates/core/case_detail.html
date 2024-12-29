@@ -168,6 +168,20 @@
                     <!-- 댓글 항목들이 여기에 동적으로 추가됨 -->
                 </div>
             </div>
+
+            <!-- todos -->
+            <div id="todoSection" class="bg-white rounded-lg shadow-sm p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-semibold text-gray-900">할 일 목록</h2>
+                    <button id="createTodoBtn" 
+                        class="px-3 py-1.5 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors">
+                        할 일 추가
+                    </button>
+                </div>
+                <div id="todoList" class="space-y-4">
+                    <!-- 동적으로 할 일 목록이 추가될 영역 -->
+                </div>
+            </div>
         </div>
     </div>
 
@@ -175,6 +189,8 @@
     {% include 'core/case_detail/_modals/provider_modal.html' %}
     {% include 'core/case_detail/_modals/prior_loan_modal.html' %}
     {% include 'core/case_detail/_modals/event_modal.html' %}
+    {% include 'todos/components/_todo_modal.html' %}    <!-- 추가 -->
+    {% include 'todos/components/_template_modal.html' %} <!-- 추가 -->
 
     <!-- 로딩 인디케이터 -->
     <div id="loadingIndicator" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
@@ -197,5 +213,6 @@
 <script type="module" src="{% static 'js/consulting_log.js' %}"></script>
 <script type="module" src="{% static 'js/comment.js' %}"></script>
 <script type="module" src="{% static 'js/event.js' %}"></script>
+<script type="module" src="{% static 'js/case_todo.js' %}"></script>
 <script type="module" src="{% static 'js/feed_wizard_modal.js' %}"></script>
 {% endblock %}

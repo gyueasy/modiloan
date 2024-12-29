@@ -76,8 +76,8 @@ ${data.referrer || '래퍼명'}`;
             const creditScore = data.borrower_credit_score ? `N${data.borrower_credit_score}` : '미확인';
             const address = data.address_main && data.address_detail ? 
                 `${data.address_main} ${data.address_detail}` : '주소 미확인';
-            const priceInfo = data.price_amount ? `${data.price_type} ${formatAmount(data.price_amount)}` : '';
-            
+                const priceInfo = data.price_amount ? 
+                `${data.price_type} ${formatAmount(data.price_amount)}${data.area ? `(${data.area})` : ''}` : '';        
             // 선설정 대출 정보
             const priorLoans = data.prior_loans
                 ?.filter(loan => loan.loan_type === '선설정')

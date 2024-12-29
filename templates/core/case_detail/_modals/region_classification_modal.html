@@ -26,7 +26,6 @@
             <div class="mb-6">
                 <h3 class="text-lg font-semibold mb-4 flex justify-between items-center">
                     <span>대출 금리</span>
-                    <span class="text-sm font-normal">기준금리 3.6% (24/6/17 3.75%)</span>
                 </h3>
                 <div class="overflow-x-auto">
                     <table class="w-full border-collapse" id="ltvRateTable"></table>
@@ -39,6 +38,43 @@
 <script>
 (function() {
     let ltvData, rateData;
+
+    // 금리 조정 관련 상수와 키
+    const BASE_RATE_KEY = 'base_interest_rate';
+    const RATE_ADJUSTMENTS_KEY = 'rate_adjustments';
+    const DEFAULT_BASE_RATE = 3.45;
+    const DEFAULT_ADJUSTMENTS = {
+        jeongGam: { checked: false, value: 0.5 },
+        nonSeoulGyeonggi: { checked: false, value: 0.5 },
+        others: { checked: false, value: 0.2 },
+        reduction: { checked: false, value: 1.2 }
+    };
+
+    // localStorage에서 설정 가져오기
+    function getStoredSettings() {
+        const baseRate = localStorage.getItem(BASE_RATE_KEY);
+        const adjustments = localStorage.getItem(RATE_ADJUSTMENTS_KEY);
+        return {
+            baseRate: baseRate ? parseFloat(baseRate) : DEFAULT_BASE_RATE,
+            adjustments: adjustments ? JSON.parse(adjustments) : DEFAULT_ADJUSTMENTS
+        };
+    }
+
+    // 설정 저장하기
+    function saveSettings(baseRate, adjustments) {
+        localStorage.setItem(BASE_RATE_KEY, baseRate.toString());
+        localStorage.setItem(RATE_ADJUSTMENTS_KEY, JSON.stringify(adjustments));
+    }
+
+    // 총 금리 조정값 계산
+    function calculateTotalAdjustment(adjustments) {
+        let total = 0;
+        if (adjustments.jeongGam.checked) total += adjustments.jeongGam.value;
+        if (adjustments.nonSeoulGyeonggi.checked) total += adjustments.nonSeoulGyeonggi.value;
+        if (adjustments.others.checked) total += adjustments.others.value;
+        if (adjustments.reduction.checked) total -= adjustments.reduction.value;
+        return total;
+    }
 
     async function loadData() {
         try {
@@ -59,6 +95,7 @@
     }
 
     function renderLtvTable() {
+        // LTV 테이블 렌더링 코드는 동일하게 유지
         const table = document.getElementById('regionLtvTable');
         const creditScores = Object.keys(ltvData);
         
@@ -117,6 +154,8 @@
         const table = document.getElementById('ltvRateTable');
         const creditScores = Object.keys(rateData);
         const ltvRanges = Object.keys(rateData[creditScores[0]]);
+        const settings = getStoredSettings();
+        const totalAdjustment = calculateTotalAdjustment(settings.adjustments);
 
         let html = `
             <thead>
@@ -132,11 +171,13 @@
             html += `
                 <tr>
                     <td class="p-2 border">${score}</td>
-                    ${ltvRanges.map(ltv => 
-                        `<td class="p-2 border text-center font-bold text-purple-600">
-                            ${rateData[score][ltv]}
-                        </td>`
-                    ).join('')}
+                    ${ltvRanges.map(ltv => {
+                        const originalRate = parseFloat(rateData[score][ltv]);
+                        const adjustedRate = (originalRate + totalAdjustment).toFixed(2);
+                        return `<td class="p-2 border text-center font-bold text-purple-600">
+                            ${adjustedRate}
+                        </td>`;
+                    }).join('')}
                 </tr>
             `;
         });
@@ -148,6 +189,87 @@
     function renderTables() {
         renderLtvTable();
         renderRateTable();
+    }
+
+    // 기준금리 변경을 위한 UI 추가
+    function addRateControls() {
+        const rateTitle = document.querySelector('.font-semibold.mb-4.flex');
+        const settings = getStoredSettings();
+
+        const controlsHtml = `
+            <div class="flex items-center space-x-4">
+                <div class="flex items-center space-x-2">
+                    <span id="baseRateDisplay" class="text-sm font-normal">기준금리 ${settings.baseRate}%</span>
+                    <button id="editBaseRate" class="text-sm text-blue-500 hover:text-blue-700">
+                        <span class="material-icons" style="font-size: 16px;">edit</span>
+                    </button>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <label class="flex items-center space-x-2">
+                        <input type="checkbox" class="rate-adjustment" data-type="jeongGam" 
+                               ${settings.adjustments.jeongGam.checked ? 'checked' : ''}>
+                        <span class="text-sm">정감 +0.5%</span>
+                    </label>
+                    <label class="flex items-center space-x-2">
+                        <input type="checkbox" class="rate-adjustment" data-type="nonSeoulGyeonggi"
+                               ${settings.adjustments.nonSeoulGyeonggi.checked ? 'checked' : ''}>
+                        <span class="text-sm">서울경기외 +0.5%</span>
+                    </label>
+                    <label class="flex items-center space-x-2">
+                        <input type="checkbox" class="rate-adjustment" data-type="others"
+                               ${settings.adjustments.others.checked ? 'checked' : ''}>
+                        <span class="text-sm">이외 +0.2%</span>
+                    </label>
+                    <div class="flex items-center space-x-2">
+                        <input type="checkbox" class="rate-adjustment" data-type="reduction"
+                               ${settings.adjustments.reduction.checked ? 'checked' : ''}>
+                        <span class="text-sm">금리인하</span>
+                        <button id="editReduction" class="text-sm text-blue-500 hover:text-blue-700 ml-1">
+                            <span class="material-icons" style="font-size: 16px;">edit</span>
+                        </button>
+                        <span class="text-sm">(-${settings.adjustments.reduction.value}%)</span>
+                    </div>
+                </div>
+            </div>
+        `;
+        rateTitle.insertAdjacentHTML('beforeend', controlsHtml);
+
+        // 이벤트 핸들러 추가
+        document.getElementById('editBaseRate').addEventListener('click', () => {
+            const newRate = prompt('새로운 기준금리를 입력하세요:', settings.baseRate);
+            if (newRate !== null && !isNaN(newRate)) {
+                settings.baseRate = parseFloat(newRate);
+                saveSettings(settings.baseRate, settings.adjustments);
+                document.getElementById('baseRateDisplay').textContent = `기준금리 ${settings.baseRate}%`;
+                renderRateTable();
+            }
+        });
+
+        document.getElementById('editReduction').addEventListener('click', () => {
+            const newValue = prompt('금리인하 값을 입력하세요:', settings.adjustments.reduction.value);
+            if (newValue !== null && !isNaN(newValue)) {
+                settings.adjustments.reduction.value = parseFloat(newValue);
+                saveSettings(settings.baseRate, settings.adjustments);
+                renderRateControls();
+                renderRateTable();
+            }
+        });
+
+        // 체크박스 이벤트 핸들러
+        document.querySelectorAll('.rate-adjustment').forEach(checkbox => {
+            checkbox.addEventListener('change', (e) => {
+                const type = e.target.dataset.type;
+                settings.adjustments[type].checked = e.target.checked;
+                saveSettings(settings.baseRate, settings.adjustments);
+                renderRateTable();
+            });
+        });
+    }
+
+    function renderRateControls() {
+        const controlsContainer = document.querySelector('.font-semibold.mb-4.flex');
+        controlsContainer.innerHTML = '<span>대출 금리</span>';
+        addRateControls();
     }
 
     // 초기화 함수
@@ -167,6 +289,7 @@
             if (!ltvData) {
                 const success = await loadData();
                 if (!success) return;
+                addRateControls();
             }
             renderTables();
             modal.classList.remove('hidden');
@@ -180,6 +303,13 @@
         // 외부 클릭 시 닫기
         modal.addEventListener('click', function(e) {
             if (e.target === modal) {
+                modal.classList.add('hidden');
+            }
+        });
+
+        // ESC 키 입력 시 닫기
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
                 modal.classList.add('hidden');
             }
         });
