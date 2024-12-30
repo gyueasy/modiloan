@@ -66,14 +66,26 @@
         localStorage.setItem(RATE_ADJUSTMENTS_KEY, JSON.stringify(adjustments));
     }
 
-    // 총 금리 조정값 계산
-    function calculateTotalAdjustment(adjustments) {
-        let total = 0;
-        if (adjustments.jeongGam.checked) total += adjustments.jeongGam.value;
-        if (adjustments.nonSeoulGyeonggi.checked) total += adjustments.nonSeoulGyeonggi.value;
-        if (adjustments.others.checked) total += adjustments.others.value;
-        if (adjustments.reduction.checked) total -= adjustments.reduction.value;
-        return total;
+    function calculateAdjustedRate(originalRate, settings) {
+        const BASE_RATE_THRESHOLD = 3.45;
+        const MIN_RATE = 7.8;
+        
+        // 기준금리 조정 계산
+        let baseRateAdjustment = 0;
+        if (settings.baseRate < BASE_RATE_THRESHOLD) {
+            baseRateAdjustment = settings.baseRate - BASE_RATE_THRESHOLD;
+        }
+
+        // 다른 조정값 계산
+        let totalAdjustment = baseRateAdjustment;
+        if (settings.adjustments.jeongGam.checked) totalAdjustment += settings.adjustments.jeongGam.value;
+        if (settings.adjustments.nonSeoulGyeonggi.checked) totalAdjustment += settings.adjustments.nonSeoulGyeonggi.value;
+        if (settings.adjustments.others.checked) totalAdjustment += settings.adjustments.others.value;
+        if (settings.adjustments.reduction.checked) totalAdjustment -= settings.adjustments.reduction.value;
+
+        // 최종 금리 계산 및 최저금리 제한
+        const finalRate = Math.max(originalRate + totalAdjustment, MIN_RATE);
+        return finalRate.toFixed(2);
     }
 
     async function loadData() {
@@ -95,7 +107,6 @@
     }
 
     function renderLtvTable() {
-        // LTV 테이블 렌더링 코드는 동일하게 유지
         const table = document.getElementById('regionLtvTable');
         const creditScores = Object.keys(ltvData);
         
@@ -155,7 +166,6 @@
         const creditScores = Object.keys(rateData);
         const ltvRanges = Object.keys(rateData[creditScores[0]]);
         const settings = getStoredSettings();
-        const totalAdjustment = calculateTotalAdjustment(settings.adjustments);
 
         let html = `
             <thead>
@@ -173,7 +183,7 @@
                     <td class="p-2 border">${score}</td>
                     ${ltvRanges.map(ltv => {
                         const originalRate = parseFloat(rateData[score][ltv]);
-                        const adjustedRate = (originalRate + totalAdjustment).toFixed(2);
+                        const adjustedRate = calculateAdjustedRate(originalRate, settings);
                         return `<td class="p-2 border text-center font-bold text-purple-600">
                             ${adjustedRate}
                         </td>`;
